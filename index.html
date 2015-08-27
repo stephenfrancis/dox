@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title></title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="author" content="Stephen Francis">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<link rel="stylesheet" type="text/css" href="../rsl_shared/style/twitter_bootstrap/css/bootstrap.min.css" media="screen" />
+		<link rel="stylesheet" type="text/css" href="../rsl_shared/style/twitter_bootstrap/css/bootstrap-responsive.min.css" />
+	</head>
+
+	<body>
+
+		<div class="container-fluid">
+			<div class="row-fluid">
+				<div class="span2" id="left_pane">
+					Left Pane
+				</div>	<!-- #left_bar .visible-desktop -->
+
+				<div class="span10" id="right_pane">
+					Not found
+				</div>	<!-- .span10 -->
+
+			</div>	<!-- .row-fluid -->
+		</div>	<!-- .container-fluid -->
+
+		<script type="text/javascript" src="../rsl_shared/style/jquery.ui/js/jquery-1.7.2.min.js"> </script>
+		<script type="text/javascript" src="showdown.js"> </script>
+		<script type="text/javascript">
+
+			var repo = queryParams().repo || "rsl-app-docs",
+				page = queryParams().page || "README.md",
+				path = page.substr(0, page.lastIndexOf("/") + 1),
+				converter;
+
+			function splitParams(str) {
+			    var e,
+			        a = /\+/g,  // Regex for replacing addition symbol with a space
+			        r = /([^&=]+)=?([^&]*)/g,
+			        d = function (s) { return decodeURIComponent(s.replace(a, " ")); },
+			        q = str,
+			        out = {};
+			    e = r.exec(q);
+			    while (e) {
+			        out[d(e[1])] = d(e[2]);
+			        e = r.exec(q);
+			    }
+			    return out;
+			};
+
+			function queryParams() {
+			    return splitParams(location.search.substring(1));
+			};
+
+			function convertAndDisplay(selector, data_back) {
+				$(selector).html(converter.makeHtml(data_back));
+				$(selector).find("a[href]").each(function () {
+					var new_page = $(this).attr("href");
+					$(this).attr("href", "?repo=" + repo + "&page=" + path + new_page);
+				});
+			}
+			$(document).ready(function() {
+				converter = new Showdown.converter();
+
+				if (repo && page) {
+					$("#left_pane").html("<h3><a href='?repo=" + repo + "'>" + repo + "</a></h3><h4>" + page + "</h4>");
+					$.ajax({ url: "../" + repo + "/" + page, type: "GET", success: function (data_back) {
+						convertAndDisplay("#right_pane", data_back);
+					}});
+				} else {
+					alert("URL parameters 'repo' and 'page' expected!");
+				}
+			});
+		</script>
+	</body>
+</html>
