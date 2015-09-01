@@ -9,6 +9,9 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<link rel="stylesheet" type="text/css" href="../rsl_shared/style/twitter_bootstrap/css/bootstrap.min.css" media="screen" />
 		<link rel="stylesheet" type="text/css" href="../rsl_shared/style/twitter_bootstrap/css/bootstrap-responsive.min.css" />
+		<style>
+			body { font-size: 12pt; }
+		</style>
 	</head>
 
 	<body>
@@ -16,11 +19,17 @@
 		<div class="container-fluid">
 			<div class="row-fluid">
 				<div class="span2" id="left_pane">
-					Left Pane
+					<h3><a id="repo_title" ></a></h3>
+					<h4 id="page_title"></h4>
+					<br/>
+					<br/>
+					<h4>All Repos</h4>
+					<div id="other_repos">
+					</div>
 				</div>	<!-- #left_bar .visible-desktop -->
 
-				<div class="span10" id="right_pane">
-					Not found
+				<div class="span8" id="right_pane">
+					Loading...
 				</div>	<!-- .span10 -->
 
 			</div>	<!-- .row-fluid -->
@@ -48,11 +57,11 @@
 			        e = r.exec(q);
 			    }
 			    return out;
-			};
+			}
 
 			function queryParams() {
 			    return splitParams(location.search.substring(1));
-			};
+			}
 
 			function convertAndDisplay(selector, data_back) {
 				$(selector).html(converter.makeHtml(data_back));
@@ -61,14 +70,44 @@
 					$(this).attr("href", "?repo=" + repo + "&page=" + path + new_page);
 				});
 			}
+
+			function discoverRepos() {
+				var possible_repos = [
+						"rsl-app-docs",
+						"rsl-other-docs"
+					];
+
+				while (possible_repos.length > 0) {
+					checkRepo(possible_repos.shift())
+				}
+			}
+
+			function checkRepo(repo) {
+				console.log("Checking: " + repo);
+				$.ajax({ url: "../" + repo + "/README.md", type: "GET",
+					success: function (data_back) {
+						$("#other_repos").append("<p><a href='?repo=" + repo + "'>" + repo + "</a></p>");
+					}
+				});
+			}
+
 			$(document).ready(function() {
 				converter = new Showdown.converter();
+				discoverRepos();
 
 				if (repo && page) {
-					$("#left_pane").html("<h3><a href='?repo=" + repo + "'>" + repo + "</a></h3><h4>" + page + "</h4>");
-					$.ajax({ url: "../" + repo + "/" + page, type: "GET", success: function (data_back) {
-						convertAndDisplay("#right_pane", data_back);
-					}});
+					$("#repo_title").attr("href", "?repo=" + repo);
+					$("#repo_title").text(repo);
+					$("#page_title").text(page);
+					$(document).attr("title", repo + "/" + page);
+					$.ajax({ url: "../" + repo + "/" + page, type: "GET",
+						success: function (data_back) {
+							convertAndDisplay("#right_pane", data_back);
+						},
+						error: function () {
+							$("#right_pane").html("not found :-(");
+						}
+					});
 				} else {
 					alert("URL parameters 'repo' and 'page' expected!");
 				}
