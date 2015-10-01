@@ -14,6 +14,8 @@
 
 			/* Viz Styling... */
 			.node			{ font-family: Arial; }
+			#left_pane 		{ overflow-wrap: break-word; }
+			code 			{ display: block; white-space: pre-wrap; }
 		</style>
 	</head>
 
@@ -68,6 +70,7 @@
 			}
 
 			function convertAndDisplay(selector, data_back) {
+    			document.title = page;
 				$(selector).html(converter.makeHtml(data_back));
 				$(selector).find("a[href]").each(function () {
 					var new_page = $(this).attr("href");
