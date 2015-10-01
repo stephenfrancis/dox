@@ -11,6 +11,9 @@
 		<link rel="stylesheet" type="text/css" href="../rsl_shared/style/twitter_bootstrap/css/bootstrap-responsive.min.css" />
 		<style>
 			body { font-size: 12pt; }
+
+			/* Viz Styling... */
+			.node			{ font-family: Arial; }
 		</style>
 	</head>
 
@@ -37,6 +40,7 @@
 
 		<script type="text/javascript" src="../rsl_shared/style/jquery.ui/js/jquery-1.7.2.min.js"> </script>
 		<script type="text/javascript" src="showdown.js"> </script>
+		<script type="text/javascript" src="viz.js"> </script>
 		<script type="text/javascript">
 
 			var repo = queryParams().repo || "rsl-app-docs",
@@ -69,6 +73,18 @@
 					var new_page = $(this).attr("href");
 					$(this).attr("href", "?repo=" + repo + "&page=" + path + new_page);
 				});
+				$(selector).find("img[src]").each(function () {
+					var src = $(this).attr("src");
+					if (src.indexOf(":") === -1 && src.indexOf("/") !== 0) {	// protocol not specified, relative URL
+						$(this).attr("src", "../" + repo + "/" + path + src);
+					}
+				});
+				$(selector).find("p").each(function () {
+					var text = $(this).text();
+					if (text.indexOf("digraph") === 0) {
+						$(this).html(Viz(text, "svg"));
+					}
+				})
 			}
 
 			function discoverRepos() {
