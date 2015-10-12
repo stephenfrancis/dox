@@ -83,9 +83,8 @@
 					}
 				});
 				$(selector).find("p").each(function () {
-					var text = $(this).text();
-					if (text.indexOf("digraph") === 0) {
-						$(this).html(Viz(text, "svg"));
+					if ($(this).text().indexOf("digraph") === 0) {
+						applyViz(this);
 					}
 				})
 			}
@@ -108,6 +107,15 @@
 						$("#other_repos").append("<p><a href='?repo=" + repo + "'>" + repo + "</a></p>");
 					}
 				});
+			}
+
+			function applyViz(elmt) {
+				var text = $(elmt).text().replace("{", "{" +
+				    " graph [ penwidth=1, bgcolor=transparent ]; " +
+    				" node  [ fontname=Arial, fontsize=10, shape=box ]; " +
+    				" edge  [ fontname=Arial, fontsize=10 ]; ");
+
+				$(elmt).html(Viz(text, "svg"));
 			}
 
 			$(document).ready(function() {
