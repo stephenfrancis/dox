@@ -10,8 +10,14 @@
 		<link rel="stylesheet" type="text/css" href="/cdn/twitter-bootstrap-v2.3.2/css/bootstrap.min.css" media="screen" />
 		<link rel="stylesheet" type="text/css" href="/cdn/twitter-bootstrap-v2.3.2/css/bootstrap-responsive.min.css" />
 		<style>
-			body { font-size: 12pt; }
+			h1	 { font-size: 18pt; }
+			h2	 { font-size: 16pt; }
+			h3	 { font-size: 14pt; }
+			h4	 { font-size: 12pt; }
+			body { font-size: 10pt; padding-top: 20px; }
+			img	 { max-width: inherit; }		/* override TB setting and allow images to be their own size */
 
+			#curr_location ul { list-style-type: none; margin-left: 10px; }
 			/* Viz Styling... */
 			.node			{ font-family: Arial; }
 			#left_pane 		{ overflow-wrap: break-word; }
@@ -24,12 +30,14 @@
 		<div class="container-fluid">
 			<div class="row-fluid">
 				<div class="span2" id="left_pane">
-					<h3><a id="repo_title" ></a></h3>
-					<h4 id="page_title"></h4>
-					<br/>
-					<br/>
 					<h4>All Repos</h4>
 					<div id="other_repos">
+						<ul></ul>
+					</div>
+					<br/>
+					<br/>
+					<h4>Current Location</h4>
+					<div id="curr_location">
 					</div>
 				</div>	<!-- #left_bar .visible-desktop -->
 
@@ -45,10 +53,12 @@
 		<script type="text/javascript" src="viz.js"> </script>
 		<script type="text/javascript">
 
-			var repo = queryParams().repo || "rsl-app-docs",
-				page = queryParams().page || "README.md",
-				path = page.substr(0, page.lastIndexOf("/") + 1),
+			var path,
+				parts,
+				page,
 				converter;
+
+			setPathDefaults(queryParams().path);
 
 			function splitParams(str) {
 			    var e,
@@ -69,17 +79,43 @@
 			    return splitParams(location.search.substring(1));
 			}
 
+			function setPathDefaults(path_arg) {
+				var i = 1;
+				parts = (path_arg || "").split("/");
+				page = null;
+				while (parts.length > 0 && parts[0] === "") {
+					parts.shift();
+				}
+				while (i < parts.length) {
+					if (parts[i] === "..") {
+						parts.splice(i - 1, 2);
+					} else {
+						i += 1;
+					}
+				}
+				if (parts.length == 0) {
+					parts.push("rsl-app-docs");
+				}
+				if (parts[parts.length - 1].match(/\.md$/)) {
+					page = parts.pop();
+				}
+				path = parts.join("/");
+				if (!page) {
+					page = "README.md";
+				}
+				console.log("setPathDefaults(): " + parts);
+			}
+
 			function convertAndDisplay(selector, data_back) {
-    			document.title = page;
 				$(selector).html(converter.makeHtml(data_back));
 				$(selector).find("a[href]").each(function () {
 					var new_page = $(this).attr("href");
-					$(this).attr("href", "?repo=" + repo + "&page=" + path + new_page);
+					$(this).attr("href", "?path=" + path + "/" + new_page);
 				});
 				$(selector).find("img[src]").each(function () {
 					var src = $(this).attr("src");
 					if (src.indexOf(":") === -1 && src.indexOf("/") !== 0) {	// protocol not specified, relative URL
-						$(this).attr("src", "../" + repo + "/" + path + src);
+						$(this).attr("src", "../" + path + "/" + src);
 					}
 				});
 				$(selector).find("p").each(function () {
@@ -104,7 +140,7 @@
 				console.log("Checking: " + repo);
 				$.ajax({ url: "../" + repo + "/README.md", type: "GET",
 					success: function (data_back) {
-						$("#other_repos").append("<p><a href='?repo=" + repo + "'>" + repo + "</a></p>");
+						$("#other_repos > ul").append("<li><a href='?path=" + repo + "'>" + repo + "</a></li>");
 					}
 				});
 			}
@@ -118,16 +154,43 @@
 				$(elmt).html(Viz(text, "svg"));
 			}
 
+			function setCurrLocation(elmt) {
+				var i,
+					concat_path = "";
+
+				for (i = 0; i < parts.length; i += 1) {
+					concat_path += parts[i] + "/";
+					elmt = addUL(elmt);
+					elmt = addBulletLink(elmt, "?path=" + concat_path + "README.md", parts[i]);
+				}
+				elmt = addUL(elmt);
+				elmt = addBulletLink(elmt, "?path=" + concat_path + page, page);
+
+				$(document).attr("title", path + "/" + page);
+//    			document.title = page;
+			}
+
+			function addUL(elmt) {
+				return createAppend(elmt, "<ul></ul>");
+			}
+
+			function addBulletLink(elmt, url, label) {
+				return createAppend(elmt, "<li><a href='" + url + "'>" + label + "</a></li>");
+			}
+
+			function createAppend(elmt, html_str) {
+				var new_elmt = $(html_str);
+				elmt.append(new_elmt);
+				return new_elmt;
+			}
+
 			$(document).ready(function() {
 				converter = new Showdown.converter();
 				discoverRepos();
 
-				if (repo && page) {
-					$("#repo_title").attr("href", "?repo=" + repo);
-					$("#repo_title").text(repo);
-					$("#page_title").text(page);
-					$(document).attr("title", repo + "/" + page);
-					$.ajax({ url: "../" + repo + "/" + page, type: "GET",
+				if (parts.length > 0) {
+					setCurrLocation($("#curr_location"));
+					$.ajax({ url: "../" + path + "/" + page, type: "GET",
 						success: function (data_back) {
 							convertAndDisplay("#right_pane", data_back);
 						},
