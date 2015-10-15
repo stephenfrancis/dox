@@ -49,14 +49,13 @@
 		</div>	<!-- .container-fluid -->
 
 		<script type="text/javascript" src="/cdn/jquery-v1.11.3/jquery-1.11.3.min.js"> </script>
-		<script type="text/javascript" src="showdown.js"> </script>
+		<script type="text/javascript" src="marked.js"> </script>
 		<script type="text/javascript" src="viz.js"> </script>
 		<script type="text/javascript">
 
 			var path,
 				parts,
-				page,
-				converter;
+				page;
 
 			setPathDefaults(queryParams().path);
 
@@ -107,10 +106,13 @@
 			}
 
 			function convertAndDisplay(selector, data_back) {
-				$(selector).html(converter.makeHtml(data_back));
+				$(selector).html(marked(data_back, { smartypants: true }));
+				$(selector).find("table").addClass("table");			// style as TB tables
 				$(selector).find("a[href]").each(function () {
-					var new_page = $(this).attr("href");
-					$(this).attr("href", "?path=" + path + "/" + new_page);
+					var href = $(this).attr("href");
+					if (href.indexOf(":") === -1 && href.indexOf("/") !== 0) {	// protocol not specified, relative URL
+						$(this).attr("href", "?path=" + path + "/" + href);
+					}
 				});
 				$(selector).find("img[src]").each(function () {
 					var src = $(this).attr("src");
@@ -185,7 +187,6 @@
 			}
 
 			$(document).ready(function() {
-				converter = new Showdown.converter();
 				discoverRepos();
 
 				if (parts.length > 0) {
