@@ -39,6 +39,9 @@
 					<h4>Current Location</h4>
 					<div id="curr_location">
 					</div>
+					<div id="search_box">
+						<input type="text" class="input-block-level" placeholder="search" />
+					</div>
 				</div>	<!-- #left_bar .visible-desktop -->
 
 				<div class="span8" id="right_pane">
@@ -49,159 +52,19 @@
 		</div>	<!-- .container-fluid -->
 
 		<script type="text/javascript" src="/cdn/jquery-v1.11.3/jquery-1.11.3.min.js"> </script>
+		<script type="text/javascript" src="/cdn/twitter-bootstrap-v2.3.2/js/bootstrap.min.js"> </script>
 		<script type="text/javascript" src="marked.js"> </script>
 		<script type="text/javascript" src="viz.js"> </script>
+		<script type="text/javascript" src="Base.js"> </script>
+		<script type="text/javascript" src="Store.js"> </script>
+		<script type="text/javascript" src="Reader.js"> </script>
 		<script type="text/javascript">
-
-			var path,
-				parts,
-				page;
-
-			setPathDefaults(queryParams().path);
-
-			function splitParams(str) {
-			    var e,
-			        a = /\+/g,  // Regex for replacing addition symbol with a space
-			        r = /([^&=]+)=?([^&]*)/g,
-			        d = function (s) { return decodeURIComponent(s.replace(a, " ")); },
-			        q = str,
-			        out = {};
-			    e = r.exec(q);
-			    while (e) {
-			        out[d(e[1])] = d(e[2]);
-			        e = r.exec(q);
-			    }
-			    return out;
-			}
-
-			function queryParams() {
-			    return splitParams(location.search.substring(1));
-			}
-
-			function setPathDefaults(path_arg) {
-				var i = 1;
-				parts = (path_arg || "").split("/");
-				page = null;
-				while (parts.length > 0 && parts[0] === "") {
-					parts.shift();
-				}
-				while (i < parts.length) {
-					if (parts[i] === "..") {
-						parts.splice(i - 1, 2);
-					} else {
-						i += 1;
-					}
-				}
-				if (parts.length == 0) {
-					parts.push("rsl-app-docs");
-				}
-				if (parts[parts.length - 1].match(/\.md$/)) {
-					page = parts.pop();
-				}
-				path = parts.join("/");
-				if (!page) {
-					page = "README.md";
-				}
-				console.log("setPathDefaults(): " + parts);
-			}
-
-			function convertAndDisplay(selector, data_back) {
-				$(selector).html(marked(data_back, { smartypants: true }));
-				$(selector).find("table").addClass("table");			// style as TB tables
-				$(selector).find("a[href]").each(function () {
-					var href = $(this).attr("href");
-					if (href.indexOf(":") === -1 && href.indexOf("/") !== 0) {	// protocol not specified, relative URL
-						$(this).attr("href", "?path=" + path + "/" + href);
-					}
-				});
-				$(selector).find("img[src]").each(function () {
-					var src = $(this).attr("src");
-					if (src.indexOf(":") === -1 && src.indexOf("/") !== 0) {	// protocol not specified, relative URL
-						$(this).attr("src", "../" + path + "/" + src);
-					}
-				});
-				$(selector).find("p").each(function () {
-					if ($(this).text().indexOf("digraph") === 0) {
-						applyViz(this);
-					}
-				})
-			}
-
-			function discoverRepos() {
-				var possible_repos = [
-						"rsl-app-docs",
-						"rsl-other-docs"
-					];
-
-				while (possible_repos.length > 0) {
-					checkRepo(possible_repos.shift())
-				}
-			}
-
-			function checkRepo(repo) {
-				console.log("Checking: " + repo);
-				$.ajax({ url: "../" + repo + "/README.md", type: "GET",
-					success: function (data_back) {
-						$("#other_repos > ul").append("<li><a href='?path=" + repo + "'>" + repo + "</a></li>");
-					}
-				});
-			}
-
-			function applyViz(elmt) {
-				var text = $(elmt).text().replace("{", "{" +
-				    " graph [ penwidth=1, bgcolor=transparent ]; " +
-    				" node  [ fontname=Arial, fontsize=10, shape=box ]; " +
-    				" edge  [ fontname=Arial, fontsize=10 ]; ");
-
-				$(elmt).html(Viz(text, "svg"));
-			}
-
-			function setCurrLocation(elmt) {
-				var i,
-					concat_path = "";
-
-				for (i = 0; i < parts.length; i += 1) {
-					concat_path += parts[i] + "/";
-					elmt = addUL(elmt);
-					elmt = addBulletLink(elmt, "?path=" + concat_path + "README.md", parts[i]);
-				}
-				elmt = addUL(elmt);
-				elmt = addBulletLink(elmt, "?path=" + concat_path + page, page);
-
-				$(document).attr("title", path + "/" + page);
-//    			document.title = page;
-			}
-
-			function addUL(elmt) {
-				return createAppend(elmt, "<ul></ul>");
-			}
-
-			function addBulletLink(elmt, url, label) {
-				return createAppend(elmt, "<li><a href='" + url + "'>" + label + "</a></li>");
-			}
-
-			function createAppend(elmt, html_str) {
-				var new_elmt = $(html_str);
-				elmt.append(new_elmt);
-				return new_elmt;
-			}
-
 			$(document).ready(function() {
-				discoverRepos();
-
-				if (parts.length > 0) {
-					setCurrLocation($("#curr_location"));
-					$.ajax({ url: "../" + path + "/" + page, type: "GET",
-						success: function (data_back) {
-							convertAndDisplay("#right_pane", data_back);
-						},
-						error: function () {
-							$("#right_pane").html("not found :-(");
-						}
+				x.Reader.searchSetup("#search_box > input");
+				x.Store.start()
+			    	.then(function () {
+						x.Reader.start();
 					});
-				} else {
-					alert("URL parameters 'repo' and 'page' expected!");
-				}
 			});
 		</script>
 	</body>
