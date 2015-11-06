@@ -294,10 +294,10 @@ module.define("addKnownLinks", function (links, path_array) {
 
 
 module.define("startReplication", function () {
-	// this.getUnstoredDoc(0)
-	// 	.then(function () {
-	// 		that.getOldestDoc();
-	// 	});
+	this.getUnstoredDoc(0);
+		// .then(function () {
+		// 	that.getOldestDoc();
+		// });
 });
 
 
@@ -327,6 +327,7 @@ module.define("searchSetup", function (selector) {
 	this.debug("searchSetup(): " + selector);
     $(selector).typeahead({
         minLength: 4,        // min chars typed to trigger typeahead
+        items    : 20,
         source : function (query, process) { return that.searchSource (query, process); },
         updater: function (item) { return that.searchUpdater(item); }
     });
@@ -336,7 +337,7 @@ module.define("searchSetup", function (selector) {
 // use query <string> to make an array of match results and then call process(results)
 module.define("searchSource", function (query, process) {
 	var that = this,
-		regex = new RegExp(query);			// danger? for the mo, treat query as a regex expr...
+		regex = new RegExp(".*" + query + ".*", "gi");			// danger? for the mo, treat query as a regex expr...
 
 	this.debug("searchSource(): " + query);
 	this.search_map = {};			// map search result <string>s to doc paths
@@ -346,13 +347,22 @@ module.define("searchSource", function (query, process) {
 				i;
 
 			that.debug("searchSource() starting to match docs: " + docs.length);
+			function addMatch(match_text, index) {
+				results.push(match_text);
+				that.search_map[match_text] = docs[index].uuid;
+			}
 			for (i = 0; i < docs.length; i += 1) {
-				if (regex.exec(docs[i].payload.title)) {
-					results.push(docs[i].payload.title);
-					that.search_map[docs[i].payload.title] = docs[i].uuid;
+				if (docs[i].payload && regex.exec(docs[i].payload.title)) {
+					addMatch(docs[i].payload.title, i);
 				}
 			}
-
+			for (i = 0; i < docs.length; i += 1) {
+				if (docs[i].payload && typeof docs[i].payload.content === "string") {
+					docs[i].payload.content.replace(regex, function (match) {
+						addMatch(docs[i].payload.title + ": " + match, i);
+					});
+				}
+			}
 			that.debug("searchSource() sending results: " + results.length);
 			process(results);
 		});

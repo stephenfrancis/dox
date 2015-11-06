@@ -81,7 +81,7 @@ module.define("storeDoc", function (store_id, doc_obj) {
         var tx = that.db.transaction(store_id, "readwrite"),
             store = tx.objectStore(store_id);
 
-        doc_obj.last_upd = (new Date());
+        doc_obj.last_upd = (new Date()).toISOString();
         store.put(doc_obj);
         tx.oncomplete = function () {
             resolve(doc_obj);
