@@ -14,7 +14,7 @@
 			h2	 { font-size: 16pt; }
 			h3	 { font-size: 14pt; }
 			h4	 { font-size: 12pt; }
-			body { font-size: 10pt; padding-top: 20px; }
+			body { font-size: 10pt; padding: 20px; }
 			img	 { max-width: inherit; }		/* override TB setting and allow images to be their own size */
 
 			#curr_location ul { list-style-type: none; margin-left: 10px; }
@@ -26,30 +26,29 @@
 	</head>
 
 	<body>
+		<nav class="navbar navbar-fixed-top">
+			<div class="navbar-inner">
+    			<!-- Collect the nav links, forms, and other content for toggling -->
+				<form class="navbar-search pull-left" id="search_box" style="margin-left: 10px">
+					<input type="text" placeholder="search" class="search-query" />
+				</form>
+				<ul class="nav" id="menu_container" role="navigation">
+					<li>
+					</li>
+				</ul>
+			</div><!-- /.navbar-inner -->
+		</nav><!-- /.navbar -->
 
-		<div class="container-fluid">
-			<div class="row-fluid">
-				<div class="span2" id="left_pane">
-					<h4>All Repos</h4>
-					<div id="other_repos">
-						<ul></ul>
-					</div>
-					<br/>
-					<br/>
-					<h4>Current Location</h4>
-					<div id="curr_location">
-					</div>
-					<div id="search_box">
-						<input type="text" class="input-block-level" placeholder="search" />
-					</div>
-				</div>	<!-- #left_bar .visible-desktop -->
+		<div class="hidden-phone hidden-tablet" style="height: 60px">
+		</div>
 
-				<div class="span8" id="right_pane">
-					Loading...
-				</div>	<!-- .span10 -->
+		<ul id="curr_location" class="breadcrumb">
+		</ul>
 
-			</div>	<!-- .row-fluid -->
-		</div>	<!-- .container-fluid -->
+		<div id="main_pane" style="max-width: 800px">
+			Loading...
+		</div>	<!-- #main_pane -->
+
 
 		<script type="text/javascript" src="/cdn/jquery-v1.11.3/jquery-1.11.3.min.js"> </script>
 		<script type="text/javascript" src="/cdn/twitter-bootstrap-v2.3.2/js/bootstrap.min.js"> </script>

@@ -15,19 +15,19 @@ x.Store = module;
 module.define("start", function () {
     var that = this;
     return this.rebuildStore()
-    .then(function () {
-        return that.getDoc(that.store_name, that.root_doc_id);
-    })
-    .then(function (doc_obj) {
-        that.root_doc = doc_obj;
-        that.debug("start() done");
-    })
-    .then(null, /* catch */ function (reason) {
-        that.warn("start() failed: " + reason);
-        that.root_doc = { uuid: that.root_doc_id, payload: { title: "Everything", type: "folder" } };
-        that.debug("start() creating new root doc...");
-        return that.storeDoc(that.store_name, that.root_doc);
-    });
+        .then(function () {
+            return that.getDoc(that.store_name, that.root_doc_id);
+        })
+        .then(function (doc_obj) {
+            that.root_doc = doc_obj;
+            that.debug("start() done");
+        })
+        .then(null, /* catch */ function (reason) {
+            that.warn("start() failed: " + reason);
+            that.root_doc = { uuid: that.root_doc_id, payload: { title: "Everything", type: "folder" } };
+            that.debug("start() creating new root doc...");
+            return that.storeDoc(that.store_name, that.root_doc);
+        });
 });
 
 
