@@ -132,7 +132,7 @@ module.define("convertAndDisplay", function (selector, path_array, content) {
 	});
 	$(selector).find("p").each(function () {
 		if ($(this).text().indexOf("digraph") === 0) {
-			that.applyViz(this);
+			that.applyViz(this, dir);
 		}
 	})
 });
@@ -156,13 +156,14 @@ module.define("checkRepo", function (repo) {
 });
 
 
-module.define("applyViz", function (elmt) {
+module.define("applyViz", function (elmt, dir) {
 	var text = $(elmt).text().replace("{", "{" +
-	    " graph [ penwidth=1, bgcolor=transparent ]; " +
-		" node  [ fontname=Arial, fontsize=10, shape=box ]; " +
+	    " graph [ penwidth=0.5, bgcolor=transparent ]; " +
+		" node  [ fontname=Arial, fontsize=10, shape=box, style=rounded ]; " +
 		" edge  [ fontname=Arial, fontsize=10 ]; ");
 
 	text = text.replace(/[“”]/g, "\"");			// marked replaces plain double-quotes with fancy ones...
+	text = text.replace(/URL="(.*)"/g, "URL=\"?path=" + dir + "/$1\"");
 	this.debug("applyViz(): " + text);
 	$(elmt).html(Viz(text, "svg"));
 });
@@ -221,7 +222,7 @@ module.define("createAppend", function (elmt, html_str) {
 module.define("getDoc", function (path) {
 	var that = this;
     return new Promise(function (resolve, reject) {
-		$.ajax({ url: "../" + path, type: "GET",
+		$.ajax({ url: "../" + path, type: "GET", cache: false,
 			success: function (content) {
 				resolve(content);
 			},
