@@ -17,14 +17,23 @@
 			body { font-size: 10pt; padding: 20px; }
 			img	 { max-width: inherit; }		/* override TB setting and allow images to be their own size */
 
-			#curr_location ul { list-style-type: none; margin-left: 10px; }
+			#curr_location	{ margin-bottom: 0; }
+			#left_pane 		{ padding: 10px; flex-basis: 40%; background-color: #f5f5f5; margin-right: 20px; }
+			#main_pane		{ padding: 10px; flex-basis: 60%; }
+
+			#curr_location ul { list-style-type: none; margin-left: 10px;  }
 			ol 				{ padding-bottom: 5px; }
 			li > p 			{ margin: 0; }
 			li 				{ margin: 5px 0 5px 0; }
 			/* Viz Styling... */
 			.node			{ font-family: Arial; }
-			#left_pane 		{ overflow-wrap: break-word; }
+
 			code 			{ display: block; white-space: pre-wrap; }
+
+			.flex_item		{ flex: 1 1 50% }
+			@media (max-width: 767px) {
+				.flex_item_desktop	{ flex: 0 0 0%; display: none; }
+			}
 		</style>
 	</head>
 
@@ -48,10 +57,17 @@
 		<ul id="curr_location" class="breadcrumb">
 		</ul>
 
-		<div id="main_pane">
-			Loading...
-		</div>	<!-- #main_pane -->
+		<div id="container" style="display: flex; flex-direction: row">
 
+			<div id="left_pane" class="flex_item flex_item_desktop"><!-- -->
+				Loading...
+			</div>	<!-- #left_pane -->
+
+			<div id="main_pane" class="flex_item">
+				Loading...
+			</div>	<!-- #main_pane -->
+
+		</div>
 
 		<script type="text/javascript" src="/cdn/jquery-v1.11.3/jquery-1.11.3.min.js"> </script>
 		<script type="text/javascript" src="/cdn/twitter-bootstrap-v2.3.2/js/bootstrap.min.js"> </script>

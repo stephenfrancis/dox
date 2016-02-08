@@ -2,6 +2,18 @@
 /*global x, $, indexedDB, UUID, Promise, console */
 
 
+/*
+Path Behvaiour
+1. path split by '/' char
+2. '.' and '..' relative path operations dealt with
+3. all blank path elements removed EXCEPT FOR LAST
+4. last path element blank implies dir, i.e. README.md
+5. for main path,
+* no path or blank path implies /
+* / implies /{default_repo}/
+* path ending in '/'' implies ending in '/README.md'
+*/
+
 var module = x.Base.clone({
         id          : "Reader",
         path 		: null,
@@ -20,18 +32,38 @@ x.Reader = module;
 
 module.define("start", function () {
 	var that = this,
-		path_array = this.getPathArray(this.queryParams().path);
+		path_array = this.getPathArray(this.queryParams().path),
+		parent_path = [];
 
-	this.setPathDefaults(path_array);
+	if (path_array.length === 0 || (path_array.length === 1 && path_array[0] === "")) {
+		path_array = [ this.default_repo ];
+	}
+	if (path_array.length > 1) {
+		parent_path = path_array.slice(0, path_array.length - 1);
+	}
 
 	if (path_array.length > 0) {
-		this.getDoc(this.getFullPath(path_array))
+		this.getDoc(path_array)
 			.then(function (content) {
-				that.convertAndDisplay("#main_pane", path_array, content);
+				that.convertAndDisplay("#main_pane"  , path_array, content);
 				that.setCurrLocation("#curr_location", path_array, content);
 			})
 			.then(null, function (error) {
 				$("#main_pane").html(error + " :-(");
+			})
+			.then(function () {
+				if (parent_path.length > 0) {
+					return that.getDoc(parent_path);
+				} else {
+					return "";
+				}
+			})
+			.then(null, function (error) {
+				$("#left_pane").html(error + " :-(");
+			})
+			.then(function (content) {
+				that.convertAndDisplay("#left_pane" , parent_path, content);
+				that.highlightLink("#left_pane", path_array);
 			})
 			.then(function () {
 				that.discoverRepos();
@@ -68,45 +100,53 @@ module.define("getPathArray", function (path_arg) {
 	var i = 1,
 		path_array = (path_arg || "").split("/");
 
-	while (path_array.length > 0 && path_array[0] === "") {
-		path_array.shift();
-	}
+	// while (path_array.length > 0 && path_array[0] === "") {
+	// 	path_array.shift();
+	// }
 	while (i < path_array.length) {
 		if (path_array[i] === "..") {
-			path_array.splice(i - 1, 2);
+			path_array.splice(i - 1, 2);			// remove this dir element and previous one
+		} else if (path_array[i] === "." || path_array[i] === "") {
+			path_array.splice(i, 1);				// remove this dir element if not last
 		} else {
 			i += 1;
 		}
+	}
+	if (path_array[i - 1] === "README.md") {
+		path_array.pop();
 	}
 	this.trace("getPathArray(" + path_arg + "): " + path_array);
 	return path_array;
 });
 
+/*
+module.define("pathDefaults", function (path_array) {
+	var new_array = path_array.slice(0);
+	if (new_array.length == 0) {
+		new_array.push(this.default_repo);
+	}
+	this.debug("pathDefaults(): " + new_array);
+	return new_array;
+});
+*/
 
-module.define("setPathDefaults", function (path_array) {
-	if (path_array.length == 0) {
-		path_array.push(this.default_repo);
+module.define("isFile", function (path_array) {
+	if (path_array.length < 1) {
+		return false;
 	}
-	if (!path_array[path_array.length - 1].match(/\.md$/)) {
-		path_array.push("README.md");
-	}
-	this.debug("setPathDefaults(): " + path_array);
+	return (path_array[path_array.length - 1].match(/\.[a-z]{2,4}$/));		// has a 2-4 char extension
 });
 
 
 module.define("getFullPath", function (path_array) {
-	return path_array.join("/");
+	return path_array.join("/") + (this.isFile(path_array) ? "" : "/README.md");
 });
 
 
 module.define("getFullDirectory", function (path_array) {
-	var out = "",
-		delim = "",
-		i;
-
-	for (i = 0; i < path_array.length - 1; i += 1) {
-		out += delim + path_array[i];
-		delim = "/";
+	var out = path_array.join("/");
+	if (this.isFile(path_array)) {
+		out = out.substr(0, out.lastIndexOf("/"));
 	}
 	return out;
 });
@@ -117,24 +157,45 @@ module.define("convertAndDisplay", function (selector, path_array, content) {
 		dir  = this.getFullDirectory(path_array);
 
 	$(selector).html(marked(content, { smartypants: true }));
+
 	$(selector).find("table").addClass("table");			// style as TB tables
+
 	$(selector).find("a[href]").each(function () {
 		var href = $(this).attr("href");
 		if (href.indexOf(":") === -1 && href.indexOf("/") !== 0) {	// protocol not specified, relative URL
 			$(this).attr("href", "?path=" + dir + "/" + href);
 		}
 	});
+
 	$(selector).find("img[src]").each(function () {
 		var src = $(this).attr("src");
 		if (src.indexOf(":") === -1 && src.indexOf("/") !== 0) {	// protocol not specified, relative URL
 			$(this).attr("src", "../" + dir + "/" + src);
 		}
 	});
+
 	$(selector).find("p").each(function () {
 		if ($(this).text().indexOf("digraph") === 0) {
 			that.applyViz(this, dir);
 		}
 	})
+});
+
+
+module.define("highlightLink", function (selector, path_array) {
+	var match_path = "?path=";
+	if (this.isFile(path_array)) {
+		match_path += this.getFullPath(path_array);
+	} else {
+		match_path += this.getFullDirectory(path_array);
+	}
+	$(selector).find("a").each(function () {
+		var href = $(this).attr("href") || $(this).attr("xlink:href");
+		if (href === match_path) {
+			$(this).css("font-weight", "bold");
+			$(this).css("text-decoration", "underline");
+		}
+	});
 });
 
 
@@ -178,7 +239,7 @@ module.define("setCurrLocation", function (selector, path_array, content) {
 
 	for (i = 0; i < path_array.length - 1; i += 1) {
 		concat_path += path_array[i] + "/";
-		this.addBreadcrumb(elmt, "?path=" + concat_path + "README.md", path_array[i]);
+		this.addBreadcrumb(elmt, "?path=" + concat_path, path_array[i]);
 		// elmt = this.addUL(elmt);
 		// elmt = this.addBulletLink(elmt, "?path=" + concat_path + "README.md", path_array[i]);
 	}
@@ -219,10 +280,10 @@ module.define("createAppend", function (elmt, html_str) {
 
 
 // Return a Promise
-module.define("getDoc", function (path) {
+module.define("getDoc", function (path_array) {
 	var that = this;
     return new Promise(function (resolve, reject) {
-		$.ajax({ url: "../" + path, type: "GET", cache: false,
+		$.ajax({ url: "../" + that.getFullPath(path_array), type: "GET", cache: false,
 			success: function (content) {
 				resolve(content);
 			},
@@ -232,7 +293,7 @@ module.define("getDoc", function (path) {
 		});
 	}).then(function (content) {
 		// TODO need to check that file is markdown, or skip
-		that.processRetrievedDoc(that.getPathArray(path), content);
+		that.processRetrievedDoc(path_array, content);
 		return content;
 	});
 });
@@ -324,9 +385,9 @@ module.define("getUnstoredDoc", function (i) {
 		return this.getOldestDoc();
 	}
 	this.info("getting unstored doc " + i + ", " + this.all_links[i]);
-	this.getDoc(this.all_links[i])
+	this.getDoc(this.getPathArray(this.all_links[i]))
 		.then(null, function (error) {
-			that.error(error);
+			that.error(error.toString());
 		})
 		.then(function () {
 			return that.wait(5000);
