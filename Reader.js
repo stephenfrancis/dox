@@ -19,11 +19,7 @@ var module = x.Base.clone({
         path 		: null,
         parts 		: null,
         page 		: null,
-		all_repos 	: [
-			"rsl-app-docs",
-			"rsl-other-docs"
-		],
-		default_repo: "rsl-app-docs",
+		default_repo: "rsl-app-docs",		// TODO - don't want this hard-coded
 		all_links	: [],
 		replicate   : true
     });
@@ -62,11 +58,15 @@ module.define("start", function () {
 				$("#left_pane").html(error + " :-(");
 			})
 			.then(function (content) {
-				that.convertAndDisplay("#left_pane" , parent_path, content);
-				that.highlightLink("#left_pane", path_array);
+				if (content) {
+					that.convertAndDisplay("#left_pane" , parent_path, content);
+					that.highlightLink("#left_pane", path_array);
+				} else {
+					$("#left_pane").empty();
+				}
 			})
 			.then(function () {
-				that.discoverRepos();
+				that.loadMenu(path_array[0]);
 				that.startReplication();
 			});
 	} else {
@@ -119,16 +119,6 @@ module.define("getPathArray", function (path_arg) {
 	return path_array;
 });
 
-/*
-module.define("pathDefaults", function (path_array) {
-	var new_array = path_array.slice(0);
-	if (new_array.length == 0) {
-		new_array.push(this.default_repo);
-	}
-	this.debug("pathDefaults(): " + new_array);
-	return new_array;
-});
-*/
 
 module.define("isFile", function (path_array) {
 	if (path_array.length < 1) {
@@ -199,19 +189,14 @@ module.define("highlightLink", function (selector, path_array) {
 });
 
 
-module.define("discoverRepos", function () {
-	var i;
-	for (i = 0; i < this.all_repos.length; i += 1) {
-		this.checkRepo(this.all_repos[i]);
-	}
-});
-
-
-module.define("checkRepo", function (repo) {
-	this.debug("Checking: " + repo);
-	$.ajax({ url: "../" + repo + "/README.md", type: "GET",
+module.define("loadMenu", function (top_level_dir) {
+	$.ajax({ url: "menu.html", type: "GET",
 		success: function (data_back) {
-			$("#menu_container").append("<li id='" + repo + "'><a href='?path=" + repo + "'>" + repo + "</a></li>");
+			$("#menu_container").append(data_back);
+			$("#menu_container").find("#" + top_level_dir).addClass("active");
+		},
+		error: function (xml_http_request, text_status) {
+			$("#menu_container").append("<span>no menu defined - copy menu.html.template to menu.html and edit to set up menu</span>");
 		}
 	});
 });
@@ -243,7 +228,8 @@ module.define("setCurrLocation", function (selector, path_array, content) {
 		// elmt = this.addUL(elmt);
 		// elmt = this.addBulletLink(elmt, "?path=" + concat_path + "README.md", path_array[i]);
 	}
-	this.addBreadcrumb(elmt, "?path=" + concat_path + page, page, true);
+	elmt.append("<li class='active'>" + page + "</li>");
+	// this.addBreadcrumb(elmt, "?path=" + concat_path + page, page, true);
 	// elmt = this.addUL(elmt);
 	// elmt = this.addBulletLink(elmt, "?path=" + concat_path + page, page);
 
@@ -309,9 +295,9 @@ module.define("wait", function (millis) {
 });
 
 
-
 module.define("processRetrievedDoc", function (path_array, content) {
-	var path  = this.getFullPath(path_array),
+	var that  = this,
+		path  = this.getFullPath(path_array),
 		title = this.getDocTitle(path_array, content),
 		links = this.getDocLinks(content);
 
@@ -329,6 +315,9 @@ module.define("processRetrievedDoc", function (path_array, content) {
 		}
 	}).then(function () {
 		return content;
+	})
+	.then(null, function (error) {
+		that.error(error.toString());
 	});
 });
 
@@ -394,6 +383,9 @@ module.define("getUnstoredDoc", function (i) {
 		})
 		.then(function () {
 			return that.getUnstoredDoc(i + 1);
+		})
+		.then(null, function (error) {
+			that.error(error.toString());
 		});
 });
 
@@ -448,6 +440,9 @@ module.define("searchSource", function (query, process) {
 			}
 			that.debug("searchSource() sending results: " + results.length);
 			process(results);
+		})
+		.then(null, function (error) {
+			that.error(error.toString());
 		});
 });
 

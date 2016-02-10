@@ -59,7 +59,7 @@ module.define("rebuildStore", function () {
         };
 
         request.onerror = function (error) {
-            reject(error);
+            reject(error.toString() || "no error supplied in onupgradeneeded");
         };
     });
 });
@@ -77,17 +77,18 @@ module.define("storeDoc", function (store_id, doc_obj) {
         throw new Error("doc must have a payload object containing a string title");
     }
 
+    doc_obj.last_upd = (new Date()).toISOString();
+
     return new Promise(function (resolve, reject) {
         var tx = that.db.transaction(store_id, "readwrite"),
             store = tx.objectStore(store_id);
 
-        doc_obj.last_upd = (new Date()).toISOString();
         store.put(doc_obj);
         tx.oncomplete = function () {
             resolve(doc_obj);
         };
-        tx.onerror = function () {
-            reject(tx.error);
+        tx.onerror = function (event) {
+            reject("error in storeDoc(" + store_id + ", " + doc_obj.uuid + "): " + (tx.error || event.type));
         };
     });
 });
@@ -114,7 +115,7 @@ module.define("getDoc", function (store_id, uuid) {
         };
         request.onerror = function () {
             that.error("calling getDoc() reject with: " + tx.error);
-            reject(tx.error);
+            reject(tx.error || "no error supplied in getDoc");
         };
     });
 });
@@ -140,7 +141,7 @@ module.define("getAllDocs", function (store_id) {
             }
         };
         request.onerror = function () {
-            reject(tx.error);
+            reject(tx.error || "no error supplied in getAllDocs");
         };
     });
 });

@@ -17,8 +17,9 @@
 			body { font-size: 10pt; padding: 20px; }
 			img	 { max-width: inherit; }		/* override TB setting and allow images to be their own size */
 
-			#curr_location	{ margin-bottom: 0; }
-			#left_pane 		{ padding: 10px; flex-basis: 40%; background-color: #f5f5f5; margin-right: 20px; }
+			#search_box		{ margin: 10px }
+			#curr_location	{ margin-bottom: 0; border-radius: 10px; }
+			#left_pane 		{ padding: 10px; flex-basis: 40%; background-color: #f5f5f5; margin-right: 20px; border-radius: 0 0 10px 10px; }
 			#main_pane		{ padding: 10px; flex-basis: 60%; }
 
 			#curr_location ul { list-style-type: none; margin-left: 10px;  }
@@ -34,6 +35,9 @@
 			@media (max-width: 767px) {
 				.flex_item_desktop	{ flex: 0 0 0%; display: none; }
 			}
+			@media (min-width: 768px) {
+				#curr_location		{ border-radius: 10px 10px 10px 0; }
+			}
 		</style>
 	</head>
 
@@ -41,7 +45,7 @@
 		<nav class="navbar navbar-fixed-top">
 			<div class="navbar-inner">
     			<!-- Collect the nav links, forms, and other content for toggling -->
-				<form class="navbar-search pull-left" id="search_box" style="margin-left: 10px">
+				<form class="navbar-search pull-left" id="search_box">
 					<input type="text" placeholder="search" class="search-query" />
 				</form>
 				<ul class="nav" id="menu_container" role="navigation">
