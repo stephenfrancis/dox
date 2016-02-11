@@ -70,7 +70,7 @@ module.define("start", function () {
 				that.startReplication();
 			});
 	} else {
-		alert("URL parameters 'repo' and 'page' expected!");
+		alert("URL parameter 'page' expected!");
 	}
 });
 
