@@ -88,7 +88,7 @@ module.define("storeDoc", function (store_id, doc_obj) {
             resolve(doc_obj);
         };
         tx.onerror = function (event) {
-            reject("error in storeDoc(" + store_id + ", " + doc_obj.uuid + "): " + (tx.error || event.type));
+            reject("error in storeDoc(" + store_id + ", " + doc_obj.uuid + "): " + (tx.error + ", " + JSON.stringify(event)));
         };
     });
 });

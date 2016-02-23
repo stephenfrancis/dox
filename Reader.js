@@ -27,8 +27,20 @@ var module = x.Base.clone({
 x.Reader = module;
 
 module.define("start", function () {
+	var uri = URI(window.location.href),
+		params = this.splitParams(uri.query());
+
+	if (params.admin) {
+		this.admin(params);
+	} else {
+		this.main(params);
+	}
+});
+
+
+module.define("main", function (params) {
 	var that = this,
-		path_array = this.getPathArray(this.queryParams().path),
+		path_array = this.getPathArray(params.path),
 		parent_path = [];
 
 	if (path_array.length === 0 || (path_array.length === 1 && path_array[0] === "")) {
@@ -38,40 +50,39 @@ module.define("start", function () {
 		parent_path = path_array.slice(0, path_array.length - 1);
 	}
 
-	if (path_array.length > 0) {
-		this.getDoc(path_array)
-			.then(function (content) {
-				that.convertAndDisplay("#main_pane"  , path_array, content);
-				that.setCurrLocation("#curr_location", path_array, content);
-			})
-			.then(null, function (error) {
-				$("#main_pane").html(error + " :-(");
-			})
-			.then(function () {
-				if (parent_path.length > 0) {
-					return that.getDoc(parent_path);
-				} else {
-					return "";
-				}
-			})
-			.then(null, function (error) {
-				$("#left_pane").html(error + " :-(");
-			})
-			.then(function (content) {
-				if (content) {
-					that.convertAndDisplay("#left_pane" , parent_path, content);
-					that.highlightLink("#left_pane", path_array);
-				} else {
-					$("#left_pane").empty();
-				}
-			})
-			.then(function () {
-				that.loadMenu(path_array[0]);
-				that.startReplication();
-			});
-	} else {
-		alert("URL parameter 'page' expected!");
+	if (path_array.length === 0) {
+		alert("path_array has no elements...");
+		return;
 	}
+
+	this.getDoc(path_array)
+		.then(function (content) {
+			that.convertAndDisplay("#main_pane"  , path_array, content);
+			that.setCurrLocation("#curr_location", path_array, content);
+		})
+		.then(null, function (error) {
+			$("#main_pane").html(error + " :-(");
+		})
+		.then(function () {
+			if (parent_path.length > 0) {
+				return that.getDoc(parent_path);
+			}
+		})
+		.then(null, function (error) {
+			$("#left_pane").html(error + " :-(");
+		})
+		.then(function (content) {
+			if (content) {
+				that.convertAndDisplay("#left_pane" , parent_path, content);
+				that.highlightLink("#left_pane", path_array);
+			} else {
+				$("#left_pane").empty();
+			}
+		})
+		.then(function () {
+			that.loadMenu(path_array[0]);
+			that.startReplication();
+		});
 });
 
 
@@ -91,11 +102,6 @@ module.define("splitParams", function (str) {
 });
 
 
-module.define("queryParams", function () {
-    return this.splitParams(location.search.substring(1));
-});
-
-
 module.define("getPathArray", function (path_arg) {
 	var i = 1,
 		path_array = (path_arg || "").split("/");
@@ -106,6 +112,7 @@ module.define("getPathArray", function (path_arg) {
 	while (i < path_array.length) {
 		if (path_array[i] === "..") {
 			path_array.splice(i - 1, 2);			// remove this dir element and previous one
+			i -= 1;
 		} else if (path_array[i] === "." || path_array[i] === "") {
 			path_array.splice(i, 1);				// remove this dir element if not last
 		} else {
@@ -297,28 +304,36 @@ module.define("wait", function (millis) {
 
 module.define("processRetrievedDoc", function (path_array, content) {
 	var that  = this,
-		path  = this.getFullPath(path_array),
-		title = this.getDocTitle(path_array, content),
+		path,
+		title,
+		links;
+
+	try {
+		path  = this.getFullPath(path_array);
+		title = this.getDocTitle(path_array, content);
 		links = this.getDocLinks(content);
 
-	this.info("processRetrievedDoc(): doc title: " + title);
-	this.info("processRetrievedDoc(): doc links: " + links);
+		this.info("processRetrievedDoc(): doc title: " + title);
+		this.info("processRetrievedDoc(): doc links: " + links);
 
-	this.addKnownLinks(links, path_array);
+		this.addKnownLinks(links, path_array);
 
-	return x.Store.storeDoc("dox", {
-		uuid    : path,
-		payload : {
-			title   : title,
-			links   : links,
-			content : content
-		}
-	}).then(function () {
-		return content;
-	})
-	.then(null, function (error) {
-		that.error(error.toString());
-	});
+		return x.Store.storeDoc("dox", {
+			uuid    : path,
+			payload : {
+				title   : title,
+				links   : links,
+				content : content
+			}
+		}).then(function () {
+			return content;
+		})
+		.then(null, function (error) {
+			that.error(error.toString());
+		});
+	} catch (e) {
+		that.error(e.toString());
+	}
 });
 
 
@@ -450,4 +465,52 @@ module.define("searchSource", function (query, process) {
 module.define("searchUpdater", function (item) {
 	this.info("searchUpdater(): " + item + " maps to: " + this.search_map[item]);
 	window.location = "?path=" + this.search_map[item];
+});
+
+
+module.define("admin", function (params) {
+	var that = this,
+		elem = $("#main_pane"),
+		found_docs = {};
+
+	elem.empty();
+	elem.append("<table class='table'><thead><tr><th>Path / Title</th><th>Info</th><th>Links</th></tr></thead><tbody/></table>");
+	elem = elem.find("table > tbody");
+
+
+	function addDoc(doc) {
+		var html = "<tr><td>" + doc.uuid,
+			dir  = that.getFullDirectory(that.getPathArray(doc.uuid)) + "/";
+
+		html += (doc.payload ? "<br/>" + doc.payload.title : "");
+		html += "</td><td>" + doc.last_upd + "</td><td>";
+		if (doc.payload && doc.payload.links) {
+			html += "<ul>";
+			doc.payload.links.forEach(function (link) {
+				html += "<li class='missing'>" + that.getFullPath(that.getPathArray(dir + link)) + "</li>";
+			});
+			html += "</ul>";
+		}
+		html += "</td></tr>";
+		elem.append(html);
+		found_docs[doc.uuid] = true;
+	}
+
+
+	x.Store.getAllDocs("dox")
+		.then(function (docs) {
+			that.debug("admin() starting to process docs: " + docs.length);
+			docs.forEach(function (doc) {
+				addDoc(doc);
+			});
+			elem.find("li.missing").each(function () {
+				if (found_docs[$(this).text()]) {
+					$(this).removeClass("missing");
+				}
+			});
+			that.debug("admin() ending");
+		})
+		.then(null, function (error) {
+			that.error(error.toString());
+		});
 });
