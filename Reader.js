@@ -81,6 +81,8 @@ module.define("main", function (params) {
 		})
 		.then(function () {
 			that.loadMenu(path_array[0]);
+		})
+		.then(function () {
 			that.startReplication();
 		});
 });
@@ -197,14 +199,21 @@ module.define("highlightLink", function (selector, path_array) {
 
 
 module.define("loadMenu", function (top_level_dir) {
-	$.ajax({ url: "menu.html", type: "GET",
-		success: function (data_back) {
-			$("#menu_container").append(data_back);
-			$("#menu_container").find("#" + top_level_dir).addClass("active");
-		},
-		error: function (xml_http_request, text_status) {
-			$("#menu_container").append("<span>no menu defined - copy menu.html.template to menu.html and edit to set up menu</span>");
-		}
+	var that = this;
+    return new Promise(function (resolve, reject) {
+		$.ajax({ url: "menu.html", type: "GET",
+			success: function (data_back) {
+				resolve(data_back);
+			},
+			error: function (xml_http_request, text_status) {
+				reject(text_status);
+			}
+		});
+	}).then(function (content) {
+		$("#menu_container").append(content);
+		$("#menu_container").find("#" + top_level_dir).addClass("active");
+	}).then(null, function (error) {
+		$("#menu_container").append("<span>no menu defined - copy menu.html.template to menu.html and edit to set up menu</span>");
 	});
 });
 
@@ -276,7 +285,7 @@ module.define("createAppend", function (elmt, html_str) {
 module.define("getDoc", function (path_array) {
 	var that = this;
     return new Promise(function (resolve, reject) {
-		$.ajax({ url: "../" + that.getFullPath(path_array), type: "GET", cache: false,
+		$.ajax({ url: "../" + that.getFullPath(path_array), type: "GET", cache: true,
 			success: function (content) {
 				resolve(content);
 			},
@@ -313,8 +322,7 @@ module.define("processRetrievedDoc", function (path_array, content) {
 		title = this.getDocTitle(path_array, content);
 		links = this.getDocLinks(content);
 
-		this.info("processRetrievedDoc(): doc title: " + title);
-		this.info("processRetrievedDoc(): doc links: " + links);
+		this.info("processRetrievedDoc(): doc title: " + title + ", links: " + links);
 
 		this.addKnownLinks(links, path_array);
 
@@ -385,6 +393,9 @@ module.define("getUnstoredDoc", function (i) {
 	if (!this.replicate) {
 		return;
 	}
+	// if (i > 30) {
+	// 	return;			// TEMP FOR TESTING
+	// }
 	if (i + 1 >= this.all_links.length) {
 		return this.getOldestDoc();
 	}
@@ -394,7 +405,7 @@ module.define("getUnstoredDoc", function (i) {
 			that.error(error.toString());
 		})
 		.then(function () {
-			return that.wait(5000);
+			return that.wait(50);
 		})
 		.then(function () {
 			return that.getUnstoredDoc(i + 1);
@@ -409,6 +420,34 @@ module.define("getOldestDoc", function () {
 	this.info("getOldestDoc()");
 	// TODO - find oldest doc and get a new copy, wait, and then do it again
 });
+
+
+
+/*
+
+module.define("checkRepoModified", function (repo) {
+
+
+module.define("checkRepoHEAD", function (repo) {
+	var that = this;
+    return new Promise(function (resolve, reject) {
+		$.ajax({ url: "../" + repo + "/.git/HEAD", type: "GET", cache: false,
+			success: function (content) {
+				var ref =
+				resolve(content);
+			},
+			error: function (xml_http_request, text_status) {
+				reject("[" + xml_http_request.status + "] " + xml_http_request.statusText + " " + text_status);
+			}
+		});
+	}).then(function (content) {
+		that.processRetrievedDoc(path_array, content);
+		return content;
+	});
+});
+
+*/
+
 
 
 
