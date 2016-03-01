@@ -35,7 +35,7 @@ module.define("rebuildStore", function () {
     var that = this;
 
     return new Promise(function (resolve, reject) {
-        var request = indexedDB.open(that.db_name, 14);
+        var request = indexedDB.open(that.db_name, 15);
 
         request.onupgradeneeded = function (event) {
           // The database did not previously exist, so create object stores and indexes.
@@ -48,9 +48,10 @@ module.define("rebuildStore", function () {
                 console.log("error trying to delete object store 'dox': " + e.toString());
             }
             store = db.createObjectStore(that.store_name, { keyPath: "uuid" });
-            store.createIndex("by_title", "payload.title", { unique: true });
-            store.createIndex("by_parent", [ "payload.parent_id", "payload.sequence_nbr" ], { unique: false });
-            store.createIndex("by_last_upd", [ "last_upd" ], { unique: false });
+            store.createIndex("by_title", "payload.title", { unique: false });
+            // not needed for this...
+            // store.createIndex("by_parent", [ "payload.parent_id", "payload.sequence_nbr" ], { unique: false });
+            // store.createIndex("by_last_upd", [ "last_upd" ], { unique: false });
         };
 
         request.onsuccess = function () {
@@ -88,7 +89,11 @@ module.define("storeDoc", function (store_id, doc_obj) {
             resolve(doc_obj);
         };
         tx.onerror = function (event) {
-            reject("error in storeDoc(" + store_id + ", " + doc_obj.uuid + "): " + (tx.error + ", " + JSON.stringify(event)));
+            var err_msg = tx.error || event.type || "[unknown]";
+            if (event.target) {
+                err_msg = event.target.error || event.target.errorCode || err_msg;
+            }
+            reject("error in storeDoc(" + store_id + ", " + doc_obj.uuid + "): " + err_msg);
         };
     });
 });
@@ -102,20 +107,20 @@ module.define("getDoc", function (store_id, uuid) {
             store = tx.objectStore(store_id),
             request = store.get(uuid);
 
-        that.debug("creating getDoc() promise");
+        that.debug("creating getDoc() promise: " + store_id + ":" + uuid);
         request.onsuccess = function () {
             var doc_obj = request.result;
             if (doc_obj === undefined) {
-                that.error("calling getDoc() reject with: doc not found: " + uuid);
+                that.info("calling getDoc() reject with: doc not found: " + store_id + ":" + uuid);
                 reject("doc not found: " + uuid);
             } else {
-                that.debug("calling getDoc() resolve with: " + uuid);
+                that.debug("calling getDoc() resolve with: " + store_id + ":" + uuid);
                 resolve(doc_obj);
             }
         };
         request.onerror = function () {
-            that.error("calling getDoc() reject with: " + tx.error);
-            reject(tx.error || "no error supplied in getDoc");
+            that.info("calling getDoc() reject with: " + tx.error + " for: " + store_id + ":" + uuid);
+            reject((tx.error || "no error supplied in getDoc") + " for " + store_id + ":" + uuid);
         };
     });
 });

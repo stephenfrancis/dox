@@ -15,76 +15,117 @@ Path Behvaiour
 */
 
 var module = x.Base.clone({
-        id          : "Reader",
-        path 		: null,
-        parts 		: null,
-        page 		: null,
-		default_repo: "rsl-app-docs",		// TODO - don't want this hard-coded
-		all_links	: [],
-		replicate   : true
-    });
+    id          : "Reader",
+    path 		: null,
+    parts 		: null,
+    page 		: null,
+	default_repo: "rsl-app-docs",		// TODO - don't want this hard-coded
+	current_repo: null,
+	replicate   : true
+});
 
 x.Reader = module;
+x.Base  .log_level = x.Base.log_levels.warn;
+x.Store .log_level = x.Base.log_levels.warn;
+x.Reader.log_level = x.Base.log_levels.error;
 
 module.define("start", function () {
-	var uri = URI(window.location.href),
-		params = this.splitParams(uri.query());
-
-	if (params.admin) {
-		this.admin(params);
-	} else {
-		this.main(params);
-	}
+	this.main();
 });
 
 
-module.define("main", function (params) {
-	var that = this,
-		path_array = this.getPathArray(params.path),
-		parent_path = [];
+module.define("getLocationPathArray", function () {
+	var uri = URI(window.location.href),
+		path = uri.fragment(),
+		path_array = this.getPathArray(path);
 
 	if (path_array.length === 0 || (path_array.length === 1 && path_array[0] === "")) {
 		path_array = [ this.default_repo ];
 	}
-	if (path_array.length > 1) {
-		parent_path = path_array.slice(0, path_array.length - 1);
+	return path_array;
+});
+
+
+module.define("main", function () {
+	var that = this,
+		path_array = this.getLocationPathArray(),
+		repo = path_array[0];
+
+	that.load(path_array);
+	that.loadMenu()
+	.then(function () {
+		return that.replicateRepoIfModified(repo);
+	})
+	.then(null, function (error) {
+		that.error("Error caught in main(): " + error);
+	});
+});
+
+
+window.onhashchange = function () {
+	x.Reader.hashChange();
+};
+
+
+module.define("hashChange", function () {
+	var that = this,
+		path_array = this.getLocationPathArray();
+
+	that.load(path_array);
+	if (path_array[0] !== this.current_repo) {
+		that.replicateRepoIfModified(path_array[0])
+		.then(function () {
+			that.current_repo = path_array[0];
+		});
 	}
+});
+
+
+module.define("load", function (path_array) {
+	var that = this,
+		parent_path = [];
 
 	if (path_array.length === 0) {
 		alert("path_array has no elements...");
 		return;
 	}
+	if (path_array.length > 1) {
+		parent_path = path_array.slice(0, path_array.length - 1);
+	}
 
-	this.getDoc(path_array)
-		.then(function (content) {
-			that.convertAndDisplay("#main_pane"  , path_array, content);
-			that.setCurrLocation("#curr_location", path_array, content);
-		})
-		.then(null, function (error) {
-			$("#main_pane").html(error + " :-(");
-		})
-		.then(function () {
-			if (parent_path.length > 0) {
-				return that.getDoc(parent_path);
-			}
-		})
-		.then(null, function (error) {
-			$("#left_pane").html(error + " :-(");
-		})
-		.then(function (content) {
-			if (content) {
-				that.convertAndDisplay("#left_pane" , parent_path, content);
-				that.highlightLink("#left_pane", path_array);
-			} else {
-				$("#left_pane").empty();
-			}
-		})
-		.then(function () {
-			that.loadMenu(path_array[0]);
-		})
-		.then(function () {
-			that.startReplication();
-		});
+	$("#left_pane"    ).removeClass("hide");
+	$("#curr_location").removeClass("hide");
+
+	return this.getDocFromLocal(path_array)
+	.then(null, function (error) {
+		that.error("load() error: " + error + " (doc not found locally?)");
+		return that.getDocFromServer({ url: "../" + that.getFullPath(path_array), type: "GET", cache: false });
+	})
+	.then(function (content) {
+		that.convertAndDisplay("#main_pane"  , path_array, content);
+		that.setCurrLocation("#curr_location", path_array, content);
+	})
+	.then(null, function (error) {
+		$("#main_pane").html(error + " :-(");
+	})
+	.then(function () {
+		if (parent_path.length > 0) {
+			return that.getDocFromLocal(parent_path);
+		}
+	})
+	.then(null, function (error) {
+		return that.getDocFromServer({ url: "../" + that.getFullPath(parent_path), type: "GET", cache: false });
+		// $("#left_pane").html(error + " :-(");
+	})
+	.then(function (content) {
+		if (content) {
+			that.convertAndDisplay("#left_pane" , parent_path, content);
+			that.highlightLink("#left_pane", path_array);
+		} else {
+			$("#left_pane").empty();
+		}
+		return path_array;
+	});
 });
 
 
@@ -162,7 +203,7 @@ module.define("convertAndDisplay", function (selector, path_array, content) {
 	$(selector).find("a[href]").each(function () {
 		var href = $(this).attr("href");
 		if (href.indexOf(":") === -1 && href.indexOf("/") !== 0) {	// protocol not specified, relative URL
-			$(this).attr("href", "?path=" + dir + "/" + href);
+			$(this).attr("href", "#" + dir + "/" + href);
 		}
 	});
 
@@ -177,12 +218,12 @@ module.define("convertAndDisplay", function (selector, path_array, content) {
 		if ($(this).text().indexOf("digraph") === 0) {
 			that.applyViz(this, dir);
 		}
-	})
+	});
 });
 
 
 module.define("highlightLink", function (selector, path_array) {
-	var match_path = "?path=";
+	var match_path = "#";
 	if (this.isFile(path_array)) {
 		match_path += this.getFullPath(path_array);
 	} else {
@@ -201,7 +242,7 @@ module.define("highlightLink", function (selector, path_array) {
 module.define("loadMenu", function (top_level_dir) {
 	var that = this;
     return new Promise(function (resolve, reject) {
-		$.ajax({ url: "menu.html", type: "GET",
+		$.ajax({ url: "menu.html", type: "GET", cache: !that.uncache,
 			success: function (data_back) {
 				resolve(data_back);
 			},
@@ -211,7 +252,6 @@ module.define("loadMenu", function (top_level_dir) {
 		});
 	}).then(function (content) {
 		$("#menu_container").append(content);
-		$("#menu_container").find("#" + top_level_dir).addClass("active");
 	}).then(null, function (error) {
 		$("#menu_container").append("<span>no menu defined - copy menu.html.template to menu.html and edit to set up menu</span>");
 	});
@@ -225,7 +265,7 @@ module.define("applyViz", function (elmt, dir) {
 		" edge  [ fontname=Arial, fontsize=10 ]; ");
 
 	text = text.replace(/[“”]/g, "\"");			// marked replaces plain double-quotes with fancy ones...
-	text = text.replace(/URL="(.*)"/g, "URL=\"?path=" + dir + "/$1\"");
+	text = text.replace(/URL="(.*)"/g, "URL=\"#" + dir + "/$1\"");
 	this.debug("applyViz(): " + text);
 	$(elmt).html(Viz(text, "svg"));
 });
@@ -238,19 +278,23 @@ module.define("setCurrLocation", function (selector, path_array, content) {
 		concat_path = "",
 		page = path_array[path_array.length - 1];
 
+	elmt.empty();
 	for (i = 0; i < path_array.length - 1; i += 1) {
 		concat_path += path_array[i] + "/";
-		this.addBreadcrumb(elmt, "?path=" + concat_path, path_array[i]);
+		this.addBreadcrumb(elmt, "#" + concat_path, path_array[i]);
 		// elmt = this.addUL(elmt);
-		// elmt = this.addBulletLink(elmt, "?path=" + concat_path + "README.md", path_array[i]);
+		// elmt = this.addBulletLink(elmt, "#" + concat_path + "README.md", path_array[i]);
 	}
 	elmt.append("<li class='active'>" + page + "</li>");
-	// this.addBreadcrumb(elmt, "?path=" + concat_path + page, page, true);
+	// this.addBreadcrumb(elmt, "#" + concat_path + page, page, true);
 	// elmt = this.addUL(elmt);
-	// elmt = this.addBulletLink(elmt, "?path=" + concat_path + page, page);
+	// elmt = this.addBulletLink(elmt, "#" + concat_path + page, page);
 
 	$(document).attr("title", title);
 //    			document.title = page;
+
+	$("#menu_container .active").removeClass("active");
+	$("#menu_container").find("#" + path_array[0]).addClass("active");
 });
 
 
@@ -280,23 +324,154 @@ module.define("createAppend", function (elmt, html_str) {
 });
 
 
+module.define("getDocFromLocal", function (path_array) {
+	var that = this,
+		path = this.getFullPath(path_array);
 
-// Return a Promise
-module.define("getDoc", function (path_array) {
+	return x.Store.getDoc("dox", path)
+		.then(function (doc_obj) {
+			return doc_obj.payload.content;
+		});
+});
+
+
+// Return a Promise; options MUST contain url and type
+module.define("getDocFromServer", function (options) {
 	var that = this;
     return new Promise(function (resolve, reject) {
-		$.ajax({ url: "../" + that.getFullPath(path_array), type: "GET", cache: true,
-			success: function (content) {
-				resolve(content);
-			},
-			error: function (xml_http_request, text_status) {
-				reject("[" + xml_http_request.status + "] " + xml_http_request.statusText + " " + text_status);
-			}
-		});
-	}).then(function (content) {
+    	options.success = function (content) {
+			resolve(content);
+		};
+		options.error   = function (xml_http_request, text_status) {
+			reject("[" + xml_http_request.status + "] " + xml_http_request.statusText + " " + text_status);
+		};
+		$.ajax(options);
+	});
+});
+
+
+module.define("getDocTitle", function (path_array, content) {
+	var match = content.match(/^#\s*(.*)[\r\n]/);
+	if (match) {
+		return match[1];
+	}
+	return path_array[path_array.length - 1];
+});
+
+
+module.define("getDocLinks", function (content) {
+    var regex1 = /\]\(([\w\.\/]+)\)/g,         // replace(regex, callback) doesn't seem to support capturing groups
+    	regex2 = /URL\s*=\s*\"([\w\.\/]+)\"/g,
+        links = [],
+        that  = this,
+        matches,
+        i;
+
+    function addLink(match) {
+    	// TODO - need to validate that url is in the same domain
+    	if (match && match.length > 1 && match[1]) {
+	        links.push(match[1]);
+    	}
+
+    }
+    matches = content.match(regex1);
+    for (i = 0; matches && i < matches.length; i += 1) {
+    	addLink(regex1.exec(matches[i]));
+    	regex1.exec("");		// every other call to regex.exec() returns null for some reason...!
+    }
+    matches = content.match(regex2);
+    for (i = 0; matches && i < matches.length; i += 1) {
+    	addLink(regex2.exec(matches[i]));
+    	regex2.exec("");		// every other call to regex.exec() returns null for some reason...!
+    }
+    return links;
+});
+
+
+module.define("replicateRepoIfModified", function (repo) {
+	var that = this,
+		new_commit_hash,
+		old_commit_hash;
+
+	this.debug("starting replicateRepoIfModified()");
+	return this.getDocFromServer({ url: "../" + repo + "/.git/HEAD", type: "GET", cache: false })
+	.then(function (content) {
+		var ref;
+		if (content) {
+			ref = content.match(/ref: (.*)/);
+		}
+		if (!ref || ref.length < 2 || !ref[1]) {
+			throw "No ref found: " + content + ", for repo " + repo;
+		}
+		return that.getDocFromServer({ url: "../" + repo + "/.git/" + ref[1], type: "GET", cache: false });
+	})
+	.then(function (content) {
+		if (content) {
+			new_commit_hash = content.replace(/\s+/g, "");
+		}
+		that.debug("replicateRepoIfModified() new_commit_hash: " + new_commit_hash);
+		return x.Store.getDoc("dox", repo + "/README.md");
+	})
+	.then(null, function (error) {
+		that.error("Error reported: " + error);
+	})
+	.then(function (doc_obj) {
+		if (doc_obj) {
+			that.debug("replicateRepoIfModified() old_commit_hash: " + doc_obj.commit_hash);
+			old_commit_hash = doc_obj.commit_hash;
+		} else {
+			that.warn("No doc found for repo: " + repo);
+		}
+		if (new_commit_hash !== old_commit_hash) {
+			return that.replicateRepo(repo, new_commit_hash);
+		}
+	});
+});
+
+
+module.define("replicateRepo", function (repo, commit_hash) {
+	var that = this;
+	this.debug("starting replicateRepo()");
+	this.repl_links = {};
+	this.replication_count = 0;
+	this.getDocFromServerAndProcess([ repo ])
+	.then(function () {
+		return x.Store.getDoc("dox", repo + "/README.md");
+	})
+	.then(function (doc_obj) {
+		doc_obj.commit_hash = commit_hash;
+		return x.Store.storeDoc("dox", doc_obj);
+	})
+	.then(function () {
+		that.debug("finished replicateRepo()");
+	})
+	.then(null, function (error) {
+		that.error("Error in replicateRepo(): " + error);
+	});
+});
+
+
+module.define("getDocFromServerAndProcess", function (path_array) {
+	var that = this,
+		path = that.getFullPath(path_array);
+	// if (this.replication_count > 20) {
+	// 	return;
+	// }
+	this.replication_count += 1;
+	return this.getDocFromServer({ url: "../" + path, type: "GET", cache: false })
+	.then(function (content) {
 		// TODO need to check that file is markdown, or skip
-		that.processRetrievedDoc(path_array, content);
-		return content;
+		// that.info("getDocFromServerAndProcess() storing doc: " + path);
+		return that.processRetrievedDoc(path_array, content);
+	})
+	.then(function () {
+		that.info("getDocFromServerAndProcess() stored doc: " + path);
+	})
+	.then(null, function (error) {
+		that.error("getDocFromServerAndProcess(): " + error);
+	})
+	.then(function () {
+		return that.nextDocToReplicate();
 	});
 });
 
@@ -313,60 +488,23 @@ module.define("wait", function (millis) {
 
 module.define("processRetrievedDoc", function (path_array, content) {
 	var that  = this,
-		path,
-		title,
-		links;
-
-	try {
-		path  = this.getFullPath(path_array);
-		title = this.getDocTitle(path_array, content);
+		path  = this.getFullPath(path_array),
+		title = this.getDocTitle(path_array, content),
 		links = this.getDocLinks(content);
 
-		this.info("processRetrievedDoc(): doc title: " + title + ", links: " + links);
+	this.info("processRetrievedDoc(): doc title: " + title + ", links: " + links);
+	this.addKnownLinks(links, path_array);
 
-		this.addKnownLinks(links, path_array);
-
-		return x.Store.storeDoc("dox", {
-			uuid    : path,
-			payload : {
-				title   : title,
-				links   : links,
-				content : content
-			}
-		}).then(function () {
-			return content;
-		})
-		.then(null, function (error) {
-			that.error(error.toString());
-		});
-	} catch (e) {
-		that.error(e.toString());
-	}
+	return x.Store.storeDoc("dox", {
+		uuid    : path,
+		payload : {
+			title   : title,
+			links   : links,
+			content : content
+		}
+	});
 });
 
-
-module.define("getDocTitle", function (path_array, content) {
-	var match = content.match(/^#\s*(.*)[\r\n]/);
-	if (match) {
-		return match[1];
-	}
-	return path_array[path_array.length - 1];
-});
-
-
-module.define("getDocLinks", function (content) {
-    var regex = /\]\([\w\.\/]+\)/g,         // replace(regex, callback) doesn't seem to support capturing groups
-        links = [];
-
-    content.replace(regex, function (match) {
-    	var url = match.substr(2, match.length - 3);
-    	// TODO - need to validate that url is in the same domain
-    	if (typeof url === "string" && url) {
-	        links.push(url);
-    	}
-    });
-    return links;
-});
 
 
 module.define("addKnownLinks", function (links, path_array) {
@@ -376,77 +514,27 @@ module.define("addKnownLinks", function (links, path_array) {
 
 	for (i = 0; i < links.length; i += 1) {
 		link = this.getFullPath(this.getPathArray(dir + links[i]));
-		if (this.all_links.indexOf(link) === -1) {
-			this.all_links.push(link);
+		if (typeof this.repl_links[link] !== "boolean") {
+			this.repl_links[link] = false;
 		}
 	}
 });
 
 
-module.define("startReplication", function () {
-	this.getUnstoredDoc(0);
-});
+module.define("nextDocToReplicate", function () {
+	var links = Object.keys(this.repl_links),
+		i;
 
-
-module.define("getUnstoredDoc", function (i) {
-	var that = this;
-	if (!this.replicate) {
-		return;
+	for (i = 0; i < links.length; i += 1) {
+		if (!this.repl_links[links[i]]) {
+			this.repl_links[links[i]] = true;			// this one done
+			return this.getDocFromServerAndProcess(this.getPathArray(links[i]));
+		}
 	}
-	// if (i > 30) {
-	// 	return;			// TEMP FOR TESTING
-	// }
-	if (i + 1 >= this.all_links.length) {
-		return this.getOldestDoc();
-	}
-	this.info("getting unstored doc " + i + ", " + this.all_links[i]);
-	this.getDoc(this.getPathArray(this.all_links[i]))
-		.then(null, function (error) {
-			that.error(error.toString());
-		})
-		.then(function () {
-			return that.wait(50);
-		})
-		.then(function () {
-			return that.getUnstoredDoc(i + 1);
-		})
-		.then(null, function (error) {
-			that.error(error.toString());
-		});
-});
-
-
-module.define("getOldestDoc", function () {
-	this.info("getOldestDoc()");
-	// TODO - find oldest doc and get a new copy, wait, and then do it again
 });
 
 
 
-/*
-
-module.define("checkRepoModified", function (repo) {
-
-
-module.define("checkRepoHEAD", function (repo) {
-	var that = this;
-    return new Promise(function (resolve, reject) {
-		$.ajax({ url: "../" + repo + "/.git/HEAD", type: "GET", cache: false,
-			success: function (content) {
-				var ref =
-				resolve(content);
-			},
-			error: function (xml_http_request, text_status) {
-				reject("[" + xml_http_request.status + "] " + xml_http_request.statusText + " " + text_status);
-			}
-		});
-	}).then(function (content) {
-		that.processRetrievedDoc(path_array, content);
-		return content;
-	});
-});
-
-*/
 
 
 
@@ -454,56 +542,119 @@ module.define("checkRepoHEAD", function (repo) {
 module.define("searchSetup", function (selector) {
 	var that = this;
 	this.debug("searchSetup(): " + selector);
-    $(selector).typeahead({
-        minLength: 4,        // min chars typed to trigger typeahead
-        items    : 20,
-        source : function (query, process) { return that.searchSource (query, process); },
-        updater: function (item) { return that.searchUpdater(item); }
-    });
+	$(selector).on("change", function (event) {
+		var search_str = $(this).val();
+		if (!search_str) {
+			return;
+		}
+		if (search_str.length < 4) {
+			alert("search string should be at least 4 characters");
+			return;
+		}
+		that.runSearch(search_str);
+	});
+    // $(selector).typeahead({
+    //     minLength: 4,        // min chars typed to trigger typeahead
+    //     items    : 20,
+    //     source : function (query, process) { return that.searchSource (query, process); },
+    //     updater: function (item) { return that.searchUpdater(item); }
+    // });
 });
 
 
-// use query <string> to make an array of match results and then call process(results)
-module.define("searchSource", function (query, process) {
-	var that = this,
-		regex = new RegExp(".*" + query + ".*", "gi");			// danger? for the mo, treat query as a regex expr...
 
-	this.debug("searchSource(): " + query);
-	this.search_map = {};			// map search result <string>s to doc paths
+module.define("runSearch", function (search_str) {
+	var that = this;
+
+	this.debug("runSearch(): " + search_str);
+	this.clearSearch(search_str);
 	x.Store.getAllDocs("dox")
 		.then(function (docs) {
-			var results   = [],
-				i;
-
-			that.debug("searchSource() starting to match docs: " + docs.length);
-			function addMatch(match_text, index) {
-				results.push(match_text);
-				that.search_map[match_text] = docs[index].uuid;
-			}
-			for (i = 0; i < docs.length; i += 1) {
-				if (docs[i].payload && regex.exec(docs[i].payload.title)) {
-					addMatch(docs[i].payload.title, i);
-				}
-			}
-			for (i = 0; i < docs.length; i += 1) {
-				if (docs[i].payload && typeof docs[i].payload.content === "string") {
-					docs[i].payload.content.replace(regex, function (match) {
-						addMatch(docs[i].payload.title + ": " + match, i);
-					});
-				}
-			}
-			that.debug("searchSource() sending results: " + results.length);
-			process(results);
+			that.displaySearchResults(docs, search_str);
 		})
 		.then(null, function (error) {
 			that.error(error.toString());
 		});
 });
 
-// do something when item <string> is selected in the typeahead
-module.define("searchUpdater", function (item) {
-	this.info("searchUpdater(): " + item + " maps to: " + this.search_map[item]);
-	window.location = "?path=" + this.search_map[item];
+module.define("clearSearch", function (search_str) {
+	$("#main_pane").empty();
+	$("#main_pane").append("<h1>Matches for '" + search_str + "'</h1>")
+	$("#left_pane"    ).addClass("hide");
+	$("#curr_location").addClass("hide");
+});
+
+
+module.define("displaySearchResults", function (docs, search_str) {
+	var that = this,
+		root_selector = $("#main_pane"),
+		regex1 = new RegExp(".*" + search_str + ".*", "gi"),			// danger? for the mo, treat query as a regex expr...;
+		regex2 = new RegExp(search_str, "gi"),
+		added_doc_nodes = {},
+		count_doc = 0,
+		count_match = 0,
+		i;
+
+	this.debug("displaySearchResults() starting to match docs: " + docs.length);
+
+	function highlightText(str) {
+		return str.replace(regex2, function (match_str) {
+			count_match +=1;
+			return "<span class='highlight'>" + match_str + "</span>";
+		});
+	}
+
+	function addDoc(doc) {
+		var new_doc_node;
+		root_selector.append("<div class='match_result'><i class='icon-file' /> <b>" +
+			highlightText(doc.payload.title) + "</b><span>" + doc.uuid + "</span><ul/></div>");
+		new_doc_node = root_selector.children("div.match_result").last();
+		added_doc_nodes[doc.uuid] = new_doc_node;
+		count_doc += 1;
+		return new_doc_node;
+	}
+
+	function getOrAddDoc(doc) {
+		var doc_node = added_doc_nodes[doc.uuid];
+		if (!doc_node) {
+			doc_node = addDoc(doc);
+		}
+		return doc_node;
+	}
+
+	function addMatch(match) {
+		var doc_node = getOrAddDoc(docs[i]);
+		that.debug("adding a new match... " + doc_node + " ... " + match + ", " + doc_node.length);
+		doc_node.find("ul").append("<li>" + highlightText(match) + "</li>");
+	}
+
+	for (i = 0; i < docs.length; i += 1) {
+		if (docs[i].payload && regex2.exec(docs[i].payload.title)) {
+			getOrAddDoc(docs[i]);
+		}
+	}
+
+	for (i = 0; i < docs.length; i += 1) {
+		if (docs[i].payload && typeof docs[i].payload.content === "string") {
+			docs[i].payload.content.replace(regex1, addMatch);
+		}
+	}
+	root_selector.append("<div><b>" + count_match + "</b> matches across <b>" + count_doc + "</b> files");
+	this.debug("displaySearchResults() finished");
+});
+
+$(document).on("click", "div.match_result", function (event) {
+	var doc_id = $(this).children("span").text(),
+		uri = URI(window.location.href);
+
+	uri.fragment(doc_id);
+	window.location.href = uri.toString();
+});
+
+
+$(document).on("submit", function (event) {
+    event.preventDefault();
+	return false;
 });
 
 
