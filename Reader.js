@@ -20,6 +20,7 @@ var module = x.Base.clone({
     parts 		: null,
     page 		: null,
 	default_repo: "rsl-app-docs",		// TODO - don't want this hard-coded
+	caching		: true,
 	current_repo: null,
 	replicate   : true
 });
@@ -83,7 +84,8 @@ module.define("hashChange", function () {
 
 module.define("load", function (path_array) {
 	var that = this,
-		parent_path = [];
+		parent_path = [],
+		start_promise;
 
 	if (path_array.length === 0) {
 		alert("path_array has no elements...");
@@ -96,10 +98,19 @@ module.define("load", function (path_array) {
 	$("#left_pane"    ).removeClass("hide");
 	$("#curr_location").removeClass("hide");
 
-	return this.getDocFromLocal(path_array)
+    return new Promise(function (resolve, reject) {
+    	resolve();
+    })
+	.then(function () {
+		if (!that.caching) {
+			throw "not caching";
+		}
+		return that.getDocFromLocal(path_array)
+	})
 	.then(null, function (error) {
-		that.error("load() error: " + error + " (doc not found locally?)");
-		return that.getDocFromServer({ url: "../" + that.getFullPath(path_array), type: "GET", cache: false });
+		var path = "../" + that.getFullPath(path_array);
+		that.error("load() error: " + error + " for (main) path: " + path);
+		return that.getDocFromServer({ url: path, type: "GET", cache: false });
 	})
 	.then(function (content) {
 		that.convertAndDisplay("#main_pane"  , path_array, content);
@@ -110,12 +121,16 @@ module.define("load", function (path_array) {
 	})
 	.then(function () {
 		if (parent_path.length > 0) {
+			if (!that.caching) {
+				throw "not caching";
+			}
 			return that.getDocFromLocal(parent_path);
 		}
 	})
 	.then(null, function (error) {
-		return that.getDocFromServer({ url: "../" + that.getFullPath(parent_path), type: "GET", cache: false });
-		// $("#left_pane").html(error + " :-(");
+		var path = "../" + that.getFullPath(parent_path);
+		that.error("load() error: " + error + " for (parent) path: " + path);
+		return that.getDocFromServer({ url: path, type: "GET", cache: false });
 	})
 	.then(function (content) {
 		if (content) {
@@ -658,7 +673,41 @@ $(document).on("submit", function (event) {
 });
 
 
-module.define("admin", function (params) {
+$(document).ready(function() {
+	if (x.Reader.caching) {
+		$("#caching").addClass("active");
+	}
+});
+
+
+$(document).on("click", "#caching", function (event) {
+	x.Reader.caching = $(this).hasClass("active");
+	x.Reader.clearCache();
+});
+
+
+module.define("clearCache", function (params) {
+	var that = this;
+	x.Store.getAllDocs("dox")
+	.then(function (docs) {
+		that.debug("clearCache() starting to delete docs: " + docs.length);
+		docs.forEach(function (doc) {
+			x.Store.deleteDoc("dox", doc);
+		});
+	})
+	.then(null, function (error) {
+		that.error(error.toString());
+	});
+});
+
+
+
+$(document).on("click", "#broken_links", function (event) {
+	x.Reader.brokenLinks();
+});
+
+
+module.define("brokenLinks", function (params) {
 	var that = this,
 		elem = $("#main_pane"),
 		found_docs = {};
@@ -688,19 +737,19 @@ module.define("admin", function (params) {
 
 
 	x.Store.getAllDocs("dox")
-		.then(function (docs) {
-			that.debug("admin() starting to process docs: " + docs.length);
-			docs.forEach(function (doc) {
-				addDoc(doc);
-			});
-			elem.find("li.missing").each(function () {
-				if (found_docs[$(this).text()]) {
-					$(this).removeClass("missing");
-				}
-			});
-			that.debug("admin() ending");
-		})
-		.then(null, function (error) {
-			that.error(error.toString());
+	.then(function (docs) {
+		that.debug("brokenLinks() starting to process docs: " + docs.length);
+		docs.forEach(function (doc) {
+			addDoc(doc);
 		});
+		elem.find("li.missing").each(function () {
+			if (found_docs[$(this).text()]) {
+				$(this).removeClass("missing");
+			}
+		});
+		that.debug("brokenLinks() ending");
+	})
+	.then(null, function (error) {
+		that.error(error.toString());
+	});
 });

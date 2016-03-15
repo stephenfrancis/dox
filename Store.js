@@ -186,20 +186,19 @@ module.define("getChildDocIds", function (store_id, uuid) {
 
 
 module.define("deleteDoc", function (store_id, doc_obj) {
-//    var that = this;
-
+    var that = this;
     return new Promise(function (resolve, reject) {
-        var tx = this.db.transaction(store_id, "readwrite"),
-            store = tx.objectStore(store_id);
-/*
-        store["delete"](doc_obj.uuid);
+        var tx = that.db.transaction(store_id, "readwrite"),
+            store = tx.objectStore(store_id),
+            request;
+
+        request = store["delete"](doc_obj.uuid);
         request.onsuccess = function () {
             resolve(doc_obj);
         };
         request.onerror = function () {
             reject(tx.error);
         };
-*/
     });
 });
 
