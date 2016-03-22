@@ -1,0 +1,12 @@
+digraph CombinedProcessModel {
+  CAT [ URL="CAT" label="Candidate Attraction" ];
+	TLG [ URL="TLG" label="Tactical Lead Generation" ];
+	TVC [ URL="TVC" label="Tactical Vacancy Conversion" ]; TLG -> TVC [ label="lead" ];
+	SBD [ URL="SBD" label="Strategic Business Development" ];
+  CAM [ URL="CAM" label="Client Account Management" ]; SBD -> CAM [ label="service win"];
+	VFF [ URL="VFF" label="Vacancy Fulfilment" ]; TVC -> VFF [ label="vacancy" ]; CAM -> VFF [ label="vacancy" ]; CAT -> VFF [ label="candidate" ];
+  CMG [ URL="CMG" label="Contract Management" ]; VFF -> CMG [ label="new temp / contractor" ];
+  TBP [ URL="TBP" label="Time Capture, Billing and Payment" ]; CMG -> TBP [ label="contract changes" ];
+  TBP -> CMG [ constraint=false color="gray" label="pay and charge data" ];
+  CMG -> CAM [ constraint=false color="gray" label="pay, charge and tenure data" ];
+}

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title></title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="author" content="Stephen Francis">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<link rel="stylesheet" type="text/css" href="/cdn/twitter-bootstrap-v2.3.2/css/bootstrap.min.css" media="screen" />
+		<link rel="stylesheet" type="text/css" href="/cdn/twitter-bootstrap-v2.3.2/css/bootstrap-responsive.min.css" />
+		<style>
+			body	{ padding: 20px; }
+		</style>
+	</head>
+
+	<body>
+		<h3>Source</h3>
+		<div id="source">
+digraph CombinedProcessModel {
+  	CAT [ URL="CAT" label="Candidate Attraction" ];
+	TLG [ URL="TLG" label="Tactical Lead Generation" ];
+	TVC [ URL="TVC" label="Tactical Vacancy Conversion" ]; TLG -> TVC [ label="lead" ];
+	SBD [ URL="SBD" label="Strategic Business Development" ];
+  	CAM [ URL="CAM" label="Client Account Management" ]; SBD -> CAM [ label="service win"];
+	VFF [ URL="VFF" label="Vacancy Fulfilment" ]; TVC -> VFF [ label="vacancy" ]; CAM -> VFF [ label="vacancy" ]; CAT -> VFF [ label="candidate" ];
+  	CMG [ URL="CMG" label="Contract Management" ]; VFF -> CMG [ label="new temp / contractor" ];
+	TBP [ URL="TBP" label="Time Capture, Billing and Payment" ]; CMG -> TBP [ label="contract changes" ];
+	TBP -> CMG [ constraint=false color="gray" label="pay and charge data" ];
+	CMG -> CAM [ constraint=false color="gray" label="pay, charge and tenure data" ];
+}
+		</div>
+
+		<h3>Target</h3>
+		<ol id="target">
+		</ol>
+
+		<script type="text/javascript" src="/cdn/jquery-v1.11.3/jquery-1.11.3.min.js"> </script>
+		<script type="text/javascript" src="/cdn/twitter-bootstrap-v2.3.2/js/bootstrap.min.js"> </script>
+		<script type="text/javascript" src="/cdn/taylorhakes-promise-polyfill/Promise.min.js"> </script>
+		<script type="text/javascript" src="/cdn/medialize/URI.js"> </script>
+		<script type="text/javascript" src="dot.js"> </script>
+		<script type="text/javascript">
+			$(document).ready(function() {
+				var source = $("#source").text(),
+					reverse_symbol = [];
+
+				stmts = [];
+				parser = new dot.Parser();
+
+				function setupSymbols() {
+					var keys = Object.keys(parser.symbols_),
+						i;
+
+					for (i = 0; i < keys.length; i += 1) {
+						reverse_symbol[parser.symbols_[keys[i]]] = keys[i];
+					}
+
+				}
+				function outputObject(obj) {
+					var str = "{ ",
+						delim = "",
+						keys = Object.keys(obj),
+						i;
+
+					for (i = 0; i < keys.length; i += 1) {
+						str += delim + keys[i] + " = " + obj[keys[i]];
+						delim = ", ";
+					}
+
+					return str + " }";
+				}
+
+				function getSymbol(yystate) {
+					var prod = parser.productions_[yystate];
+					return reverse_symbol[prod[0]];
+				}
+
+				function getLevel(yystate) {
+					var prod = parser.productions_[yystate];
+					return prod[1];
+				}
+
+				try {
+					setupSymbols();
+					parser.performAction = function(yytext, yyleng, yylineno, yy, yystate /* action[1] */, $$ /* vstack */, _$ /* lstack */) {
+						$("#target").append("<li>" + yytext + ", " + yystate + ", " + getSymbol(yystate) + ", " + getLevel(yystate) + ", " + $$.length + ", " + outputObject($$) + "</li>");
+					}
+					parser.parse(source);
+				} catch (e) {
+					exception = e;
+					$("#target").append("<li>" + e.message + "</li>");
+				}
+			});
+		</script>
+	</body>
+</html>

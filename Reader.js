@@ -677,11 +677,13 @@ $(document).ready(function() {
 	if (x.Reader.caching) {
 		$("#caching").addClass("active");
 	}
+	$("#caching").text("Caching " + (x.Reader.caching ? "ON" : "OFF"));
 });
 
 
 $(document).on("click", "#caching", function (event) {
 	x.Reader.caching = $(this).hasClass("active");
+	$(this).text("Caching " + (x.Reader.caching ? "ON" : "OFF"));
 	x.Reader.clearCache();
 });
 
