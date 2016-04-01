@@ -216,17 +216,11 @@ module.define("convertAndDisplay", function (selector, path_array, content) {
 	$(selector).find("table").addClass("table");			// style as TB tables
 
 	$(selector).find("a[href]").each(function () {
-		var href = $(this).attr("href");
-		if (href.indexOf(":") === -1 && href.indexOf("/") !== 0) {	// protocol not specified, relative URL
-			$(this).attr("href", "#" + dir + "/" + href);
-		}
+		that.convertPathAttribute(dir, $(this), "href");
 	});
 
 	$(selector).find("img[src]").each(function () {
-		var src = $(this).attr("src");
-		if (src.indexOf(":") === -1 && src.indexOf("/") !== 0) {	// protocol not specified, relative URL
-			$(this).attr("src", "../" + dir + "/" + src);
-		}
+		that.convertPathAttribute(dir, $(this), "src");
 	});
 
 	$(selector).find("p").each(function () {
@@ -234,6 +228,15 @@ module.define("convertAndDisplay", function (selector, path_array, content) {
 			that.applyViz(this, dir);
 		}
 	});
+});
+
+
+module.define("convertPathAttribute", function (dir, selector, attr) {
+	var href = selector.attr(attr);
+	if (href.indexOf(":") === -1 && href.indexOf("#") !== 0 && href.indexOf("/") !== 0) {	// protocol not specified, relative URL
+		href = "#" + dir + "/" + href;
+		selector.attr(attr, href);
+	}
 });
 
 
