@@ -164,9 +164,6 @@ module.define("getPathArray", function (path_arg) {
 	var i = 1,
 		path_array = (path_arg || "").split("/");
 
-	// while (path_array.length > 0 && path_array[0] === "") {
-	// 	path_array.shift();
-	// }
 	while (i < path_array.length) {
 		if (path_array[i] === "..") {
 			path_array.splice(i - 1, 2);			// remove this dir element and previous one
@@ -216,11 +213,11 @@ module.define("convertAndDisplay", function (selector, path_array, content) {
 	$(selector).find("table").addClass("table");			// style as TB tables
 
 	$(selector).find("a[href]").each(function () {
-		that.convertPathAttribute(dir, $(this), "href");
+		that.convertPathAttribute(dir, $(this), "href", "#");
 	});
 
 	$(selector).find("img[src]").each(function () {
-		that.convertPathAttribute(dir, $(this), "src");
+		that.convertPathAttribute(dir, $(this), "src" , "../");
 	});
 
 	$(selector).find("p").each(function () {
@@ -231,10 +228,10 @@ module.define("convertAndDisplay", function (selector, path_array, content) {
 });
 
 
-module.define("convertPathAttribute", function (dir, selector, attr) {
+module.define("convertPathAttribute", function (dir, selector, attr, prefix) {
 	var href = selector.attr(attr);
 	if (href.indexOf(":") === -1 && href.indexOf("#") !== 0 && href.indexOf("/") !== 0) {	// protocol not specified, relative URL
-		href = "#" + dir + "/" + href;
+		href = prefix + dir + "/" + href;
 		selector.attr(attr, href);
 	}
 });
@@ -281,6 +278,8 @@ module.define("applyViz", function (elmt, dir) {
 	    " graph [ penwidth=0.5, bgcolor=transparent ]; " +
 		" node  [ fontname=Arial, fontsize=10, shape=box, style=rounded ]; " +
 		" edge  [ fontname=Arial, fontsize=10 ]; ");
+
+// tried adding ", fixedsize=true, width=2" to node [] above, but caused issues when text width exceeded box width (2 inches) - text doesn't wrap
 
 	text = text.replace(/[“”]/g, "\"");			// marked replaces plain double-quotes with fancy ones...
 	text = text.replace(/URL="(.*)"/g, "URL=\"#" + dir + "/$1\"");
