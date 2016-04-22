@@ -38,12 +38,12 @@ module.define("start", function () {
 module.define("getLocationPathArray", function () {
 	var uri = URI(window.location.href),
 		path = uri.fragment(),
-		path_array = this.getPathArray(path);
+		path_arr = this.getPathArray(path);
 
-	if (path_array.length === 0 || (path_array.length === 1 && path_array[0] === "")) {
-		path_array = [ this.default_repo ];
+	if (path_arr.length === 0 || (path_arr.length === 1 && path_arr[0] === "")) {
+		path_arr = [ this.default_repo ];
 	}
-	return path_array;
+	return path_arr;
 });
 
 
@@ -101,46 +101,46 @@ module.define("load", function (path_array) {
     return new Promise(function (resolve, reject) {
     	resolve();
     })
-	.then(function () {
-		if (!that.caching) {
-			throw "not caching";
-		}
-		return that.getDocFromLocal(path_array)
-	})
-	.then(null, function (error) {
-		var path = "../" + that.getFullPath(path_array);
-		that.error("load() error: " + error + " for (main) path: " + path);
-		return that.getDocFromServer({ url: path, type: "GET", cache: false });
-	})
-	.then(function (content) {
-		that.convertAndDisplay("#main_pane"  , path_array, content);
-		that.setCurrLocation("#curr_location", path_array, content);
-	})
-	.then(null, function (error) {
-		$("#main_pane").html(error + " :-(");
-	})
-	.then(function () {
-		if (parent_path.length > 0) {
+		.then(function () {
 			if (!that.caching) {
 				throw "not caching";
 			}
-			return that.getDocFromLocal(parent_path);
-		}
-	})
-	.then(null, function (error) {
-		var path = "../" + that.getFullPath(parent_path);
-		that.error("load() error: " + error + " for (parent) path: " + path);
-		return that.getDocFromServer({ url: path, type: "GET", cache: false });
-	})
-	.then(function (content) {
-		if (content) {
-			that.convertAndDisplay("#left_pane" , parent_path, content);
-			that.highlightLink("#left_pane", path_array);
-		} else {
-			$("#left_pane").empty();
-		}
-		return path_array;
-	});
+			return that.getDocFromLocal(path_array)
+		})
+		.then(null, function (error) {
+			var path = "../" + that.getFullPath(path_array);
+			that.error("load() error: " + error + " for (main) path: " + path);
+			return that.getDocFromServer({ url: path, type: "GET", cache: false });
+		})
+		.then(function (content) {
+			that.convertAndDisplay("#main_pane"  , path_array, content);
+			that.setCurrLocation("#curr_location", path_array, content);
+		})
+		.then(null, function (error) {
+			$("#main_pane").html(error + " :-(");
+		})
+		.then(function () {
+			if (parent_path.length > 0) {
+				if (!that.caching) {
+					throw "not caching";
+				}
+				return that.getDocFromLocal(parent_path);
+			}
+		})
+		.then(null, function (error) {
+			var path = "../" + that.getFullPath(parent_path);
+			that.error("load() error: " + error + " for (parent) path: " + path);
+			return that.getDocFromServer({ url: path, type: "GET", cache: false });
+		})
+		.then(function (content) {
+			if (content) {
+				that.convertAndDisplay("#left_pane" , parent_path, content);
+				that.highlightLink("#left_pane", path_array);
+			} else {
+				$("#left_pane").empty();
+			}
+			return path_array;
+		});
 });
 
 
@@ -161,37 +161,56 @@ module.define("splitParams", function (str) {
 
 
 module.define("getPathArray", function (path_arg) {
-	var i = 1,
-		path_array = (path_arg || "").split("/");
+	var path_arr = (path_arg || "").split("/");
+	this.normailzePathArray(path_arr);
+	if (path_arr[path_arr.length - 1] === "README.md") {
+		path_arr.pop();
+	}
+	this.trace("getPathArray(" + path_arg + "): " + path_arr);
+	return path_arr;
+});
 
-	while (i < path_array.length) {
-		if (path_array[i] === "..") {
-			path_array.splice(i - 1, 2);			// remove this dir element and previous one
+
+module.define("normailzePathArray", function (path_arr, addl_path_arr) {
+	var i = 1;
+	if (addl_path_arr) {
+		path_arr = path_arr.concat(addl_path_arr);
+	}
+	while (i < path_arr.length) {
+		if (path_arr[i] === "..") {
+			path_arr.splice(i - 1, 2);			// remove this dir element and previous one
 			i -= 1;
-		} else if (path_array[i] === "." || path_array[i] === "") {
-			path_array.splice(i, 1);				// remove this dir element if not last
+		} else if (path_arr[i] === "." || path_arr[i] === "") {
+			path_arr.splice(i, 1);				// remove this dir element if not last
 		} else {
 			i += 1;
 		}
 	}
-	if (path_array[i - 1] === "README.md") {
-		path_array.pop();
-	}
-	this.trace("getPathArray(" + path_arg + "): " + path_array);
-	return path_array;
+	return path_arr;
 });
 
 
-module.define("isFile", function (path_array) {
+module.define("isFile", function (path_array, alt_filename) {
+	var regex = /\.[a-z]{2,4}$/;
+	if (alt_filename) {
+		return !!alt_filename.match(regex);
+	}
 	if (path_array.length < 1) {
 		return false;
 	}
-	return (path_array[path_array.length - 1].match(/\.[a-z]{2,4}$/));		// has a 2-4 char extension
+	return !!(path_array[path_array.length - 1].match(regex));		// has a 2-4 char extension
 });
 
 
-module.define("getFullPath", function (path_array) {
-	return path_array.join("/") + (this.isFile(path_array) ? "" : "/README.md");
+module.define("getFullPath", function (path_array, alt_filename) {
+	var out = path_array.join("/");
+	if (alt_filename) {
+		out += (out ? "/" : "") + alt_filename;
+	}
+	if (!this.isFile(path_array, alt_filename)) {
+		out += (out ? "/" : "") + "README.md";
+	}
+	return out;
 });
 
 
@@ -225,12 +244,17 @@ module.define("convertAndDisplay", function (selector, path_array, content) {
 			that.applyViz(this, dir);
 		}
 	});
+	$(window).scrollTop(0);
 });
 
 
+module.define("isRelativeURL", function (url) {
+	return (url.indexOf(":") === -1 && url.indexOf("#") !== 0 && url.indexOf("/") !== 0 && url.indexOf("\\") !== 0);
+});
+
 module.define("convertPathAttribute", function (dir, selector, attr, prefix) {
 	var href = selector.attr(attr);
-	if (href.indexOf(":") === -1 && href.indexOf("#") !== 0 && href.indexOf("/") !== 0) {	// protocol not specified, relative URL
+	if (this.isRelativeURL(href)) {	// protocol not specified, relative URL
 		href = prefix + dir + "/" + href;
 		selector.attr(attr, href);
 	}
@@ -377,7 +401,7 @@ module.define("getDocTitle", function (path_array, content) {
 
 
 module.define("getDocLinks", function (content) {
-    var regex1 = /\]\(([\w\.\/]+)\)/g,         // replace(regex, callback) doesn't seem to support capturing groups
+    var regex1 = /\]\((.*?)\)/g,         // replace(regex, callback) doesn't seem to support capturing groups
     	regex2 = /URL\s*=\s*\"([\w\.\/]+)\"/g,
         links = [],
         that  = this,
@@ -386,7 +410,7 @@ module.define("getDocLinks", function (content) {
 
     function addLink(match) {
     	// TODO - need to validate that url is in the same domain
-    	if (match && match.length > 1 && match[1]) {
+    	if (match && match.length > 1 && match[1] && that.isRelativeURL(match[1])) {
 	        links.push(match[1]);
     	}
 
@@ -412,37 +436,37 @@ module.define("replicateRepoIfModified", function (repo) {
 
 	this.debug("starting replicateRepoIfModified()");
 	return this.getDocFromServer({ url: "../" + repo + "/.git/HEAD", type: "GET", cache: false })
-	.then(function (content) {
-		var ref;
-		if (content) {
-			ref = content.match(/ref: (.*)/);
-		}
-		if (!ref || ref.length < 2 || !ref[1]) {
-			throw "No ref found: " + content + ", for repo " + repo;
-		}
-		return that.getDocFromServer({ url: "../" + repo + "/.git/" + ref[1], type: "GET", cache: false });
-	})
-	.then(function (content) {
-		if (content) {
-			new_commit_hash = content.replace(/\s+/g, "");
-		}
-		that.debug("replicateRepoIfModified() new_commit_hash: " + new_commit_hash);
-		return x.Store.getDoc("dox", repo + "/README.md");
-	})
-	.then(null, function (error) {
-		that.error("Error reported: " + error);
-	})
-	.then(function (doc_obj) {
-		if (doc_obj) {
-			that.debug("replicateRepoIfModified() old_commit_hash: " + doc_obj.commit_hash);
-			old_commit_hash = doc_obj.commit_hash;
-		} else {
-			that.warn("No doc found for repo: " + repo);
-		}
-		if (new_commit_hash !== old_commit_hash) {
-			return that.replicateRepo(repo, new_commit_hash);
-		}
-	});
+		.then(function (content) {
+			var ref;
+			if (content) {
+				ref = content.match(/ref: (.*)/);
+			}
+			if (!ref || ref.length < 2 || !ref[1]) {
+				throw "No ref found: " + content + ", for repo " + repo;
+			}
+			return that.getDocFromServer({ url: "../" + repo + "/.git/" + ref[1], type: "GET", cache: false });
+		})
+		.then(function (content) {
+			if (content) {
+				new_commit_hash = content.replace(/\s+/g, "");
+			}
+			that.debug("replicateRepoIfModified() new_commit_hash: " + new_commit_hash);
+			return x.Store.getDoc("dox", repo + "/README.md");
+		})
+		.then(null, function (error) {
+			that.error("Error reported: " + error);
+		})
+		.then(function (doc_obj) {
+			if (doc_obj) {
+				that.debug("replicateRepoIfModified() old_commit_hash: " + doc_obj.commit_hash);
+				old_commit_hash = doc_obj.commit_hash;
+			} else {
+				that.warn("No doc found for repo: " + repo);
+			}
+			if (new_commit_hash !== old_commit_hash) {
+				return that.replicateRepo(repo, new_commit_hash);
+			}
+		});
 });
 
 
@@ -553,13 +577,10 @@ module.define("nextDocToReplicate", function () {
 
 
 
-
-
-
 module.define("searchSetup", function (selector) {
 	var that = this;
 	this.debug("searchSetup(): " + selector);
-	$(selector).on("change", function (event) {
+	$(selector).on("blur", function (event) {
 		var search_str = $(this).val();
 		if (!search_str) {
 			return;
@@ -706,54 +727,63 @@ module.define("clearCache", function (params) {
 
 
 
-$(document).on("click", "#broken_links", function (event) {
-	x.Reader.brokenLinks();
+$(document).on("click", "#list_docs", function (event) {
+	x.Reader.listRepoDocs();
 });
 
 
-module.define("brokenLinks", function (params) {
+module.define("listRepoDocs", function (params) {
 	var that = this,
+		repo = this.getLocationPathArray()[0],
 		elem = $("#main_pane"),
 		found_docs = {};
 
 	elem.empty();
-	elem.append("<table class='table'><thead><tr><th>Path / Title</th><th>Info</th><th>Links</th></tr></thead><tbody/></table>");
+	elem.append("<table class='table'><thead><tr><th>Path / Title</th><th>Last Modified</th><th>Internal Links</th></tr></thead><tbody/></table>");
 	elem = elem.find("table > tbody");
 
-
 	function addDoc(doc) {
-		var html = "<tr><td>" + doc.uuid,
-			dir  = that.getFullDirectory(that.getPathArray(doc.uuid)) + "/";
+		var html,
+			path_arr = that.getPathArray(doc.uuid),
+			path;
 
+		if (path_arr.shift() !== repo) {		// omit repo id from beginning of dir
+			return;				// filter on chosen repo
+		}
+		path  = that.getFullPath(path_arr);
+		html  = "<tr><td>" + path;
 		html += (doc.payload ? "<br/>" + doc.payload.title : "");
 		html += "</td><td>" + doc.last_upd + "</td><td>";
-		if (doc.payload && doc.payload.links) {
+		if (doc.payload && doc.payload.links && doc.uuid.match(/\.md$/)) {
+			if (that.isFile(path_arr)) {
+				path_arr.pop();
+			}
 			html += "<ul>";
 			doc.payload.links.forEach(function (link) {
-				html += "<li class='missing'>" + that.getFullPath(that.getPathArray(dir + link)) + "</li>";
+				html += "<li class='missing'>" + that.getFullPath(that.normailzePathArray(path_arr, link.split("/"))) + "</li>";
 			});
 			html += "</ul>";
 		}
 		html += "</td></tr>";
 		elem.append(html);
-		found_docs[doc.uuid] = true;
+		found_docs[path] = true;
 	}
 
 
 	x.Store.getAllDocs("dox")
-	.then(function (docs) {
-		that.debug("brokenLinks() starting to process docs: " + docs.length);
-		docs.forEach(function (doc) {
-			addDoc(doc);
+		.then(function (docs) {
+			that.debug("listRepoDocs() starting to process docs: " + docs.length);
+			docs.forEach(function (doc) {
+				addDoc(doc);
+			});
+			elem.find("li.missing").each(function () {
+				if (found_docs[$(this).text()]) {
+					$(this).removeClass("missing");
+				}
+			});
+			that.debug("listRepoDocs() ending");
+		})
+		.then(null, function (error) {
+			that.error(error.toString());
 		});
-		elem.find("li.missing").each(function () {
-			if (found_docs[$(this).text()]) {
-				$(this).removeClass("missing");
-			}
-		});
-		that.debug("brokenLinks() ending");
-	})
-	.then(null, function (error) {
-		that.error(error.toString());
-	});
 });
