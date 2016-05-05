@@ -1,9 +1,9 @@
-/*jslint browser: true */
-/*global x, $, indexedDB, UUID, Promise, console */
+/*global x, $, indexedDB, UUID, URI, Promise, marked, console, window, alert, document */
+"use strict";
 
 
 /*
-Path Behvaiour
+Path Behaviour
 1. path split by '/' char
 2. '.' and '..' relative path operations dealt with
 3. all blank path elements removed EXCEPT FOR LAST
@@ -52,14 +52,17 @@ module.define("main", function () {
 		path_array = this.getLocationPathArray(),
 		repo = path_array[0];
 
-	that.load(path_array);
 	that.loadMenu()
-	.then(function () {
-		return that.replicateRepoIfModified(repo);
-	})
-	.then(null, function (error) {
-		that.error("Error caught in main(): " + error);
-	});
+		.then(function () {
+			return that.replicateRepoIfModified(repo);
+		})
+		.then(null, function (error) {
+			that.error("Error caught in main(): " + error);
+		})
+		.then(function () {
+			that.current_repo = path_array[0];
+			that.load(path_array);
+		});
 });
 
 
@@ -72,20 +75,24 @@ module.define("hashChange", function () {
 	var that = this,
 		path_array = this.getLocationPathArray();
 
-	that.load(path_array);
 	if (path_array[0] !== this.current_repo) {
 		that.replicateRepoIfModified(path_array[0])
-		.then(function () {
-			that.current_repo = path_array[0];
-		});
+			.then(null, function (error) {
+				that.error("Error caught in hashChange(): " + error);
+			})
+			.then(function () {
+				that.current_repo = path_array[0];
+				that.load(path_array);
+			});
+	} else {
+		that.load(path_array);
 	}
 });
 
 
 module.define("load", function (path_array) {
 	var that = this,
-		parent_path = [],
-		start_promise;
+		parent_path = [];
 
 	if (path_array.length === 0) {
 		alert("path_array has no elements...");
@@ -98,20 +105,7 @@ module.define("load", function (path_array) {
 	$("#left_pane"    ).removeClass("hide");
 	$("#curr_location").removeClass("hide");
 
-    return new Promise(function (resolve, reject) {
-    	resolve();
-    })
-		.then(function () {
-			if (!that.caching) {
-				throw "not caching";
-			}
-			return that.getDocFromLocal(path_array)
-		})
-		.then(null, function (error) {
-			var path = "../" + that.getFullPath(path_array);
-			that.error("load() error: " + error + " for (main) path: " + path);
-			return that.getDocFromServer({ url: path, type: "GET", cache: false });
-		})
+	return this.getDocFromLocalOrServer(path_array)
 		.then(function (content) {
 			that.convertAndDisplay("#main_pane"  , path_array, content);
 			that.setCurrLocation("#curr_location", path_array, content);
@@ -121,16 +115,8 @@ module.define("load", function (path_array) {
 		})
 		.then(function () {
 			if (parent_path.length > 0) {
-				if (!that.caching) {
-					throw "not caching";
-				}
-				return that.getDocFromLocal(parent_path);
+				return that.getDocFromLocalOrServer(parent_path);
 			}
-		})
-		.then(null, function (error) {
-			var path = "../" + that.getFullPath(parent_path);
-			that.error("load() error: " + error + " for (parent) path: " + path);
-			return that.getDocFromServer({ url: path, type: "GET", cache: false });
 		})
 		.then(function (content) {
 			if (content) {
@@ -143,7 +129,7 @@ module.define("load", function (path_array) {
 		});
 });
 
-
+/*
 module.define("splitParams", function (str) {
     var e,
         a = /\+/g,  // Regex for replacing addition symbol with a space
@@ -158,10 +144,12 @@ module.define("splitParams", function (str) {
     }
     return out;
 });
-
+*/
 
 module.define("getPathArray", function (path_arg) {
-	var path_arr = (path_arg || "").split("/");
+	var path_arr;
+	path_arg = path_arg || "";
+	path_arr = path_arg.split("/");
 	this.normailzePathArray(path_arr);
 	if (path_arr[path_arr.length - 1] === "README.md") {
 		path_arr.pop();
@@ -278,20 +266,20 @@ module.define("highlightLink", function (selector, path_array) {
 });
 
 
-module.define("loadMenu", function (top_level_dir) {
+module.define("loadMenu", function () {
 	var that = this;
     return new Promise(function (resolve, reject) {
 		$.ajax({ url: "menu.html", type: "GET", cache: !that.uncache,
 			success: function (data_back) {
 				resolve(data_back);
 			},
-			error: function (xml_http_request, text_status) {
+			error: function (ignore /*xml_http_request*/, text_status) {
 				reject(text_status);
 			}
 		});
 	}).then(function (content) {
 		$("#menu_container").append(content);
-	}).then(null, function (error) {
+	}).then(null, function (/*error*/) {
 		$("#menu_container").append("<span>no menu defined - copy menu.html.template to menu.html and edit to set up menu</span>");
 	});
 });
@@ -365,10 +353,17 @@ module.define("createAppend", function (elmt, html_str) {
 });
 
 
-module.define("getDocFromLocal", function (path_array) {
-	var that = this,
-		path = this.getFullPath(path_array);
+module.define("getDocFromLocalOrServer", function (path_array) {
+	if (this.caching) {
+		return this.getDocFromLocal(path_array);
+	}
+	return this.getDocFromServer(path_array);
+});
 
+
+// take path_array and return a Promise
+module.define("getDocFromLocal", function (path_array) {
+	var path = this.getFullPath(path_array);
 	return x.Store.getDoc("dox", path)
 		.then(function (doc_obj) {
 			return doc_obj.payload.content;
@@ -376,9 +371,15 @@ module.define("getDocFromLocal", function (path_array) {
 });
 
 
+// take path_array and return a Promise
+module.define("getDocFromServer", function (path_array) {
+	var path = "../" + this.getFullPath(path_array);
+	return this.getFileFromServer({ url: path, type: "GET", cache: false });
+});
+
+
 // Return a Promise; options MUST contain url and type
-module.define("getDocFromServer", function (options) {
-	var that = this;
+module.define("getFileFromServer", function (options) {
     return new Promise(function (resolve, reject) {
     	options.success = function (content) {
 			resolve(content);
@@ -409,7 +410,6 @@ module.define("getDocLinks", function (content) {
         i;
 
     function addLink(match) {
-    	// TODO - need to validate that url is in the same domain
     	if (match && match.length > 1 && match[1] && that.isRelativeURL(match[1])) {
 	        links.push(match[1]);
     	}
@@ -435,16 +435,16 @@ module.define("replicateRepoIfModified", function (repo) {
 		old_commit_hash;
 
 	this.debug("starting replicateRepoIfModified()");
-	return this.getDocFromServer({ url: "../" + repo + "/.git/HEAD", type: "GET", cache: false })
+	return this.getFileFromServer({ url: "../" + repo + "/.git/HEAD", type: "GET", cache: false })
 		.then(function (content) {
 			var ref;
 			if (content) {
-				ref = content.match(/ref: (.*)/);
+				ref = content.match(/ref:\ (.*)/);
 			}
 			if (!ref || ref.length < 2 || !ref[1]) {
 				throw "No ref found: " + content + ", for repo " + repo;
 			}
-			return that.getDocFromServer({ url: "../" + repo + "/.git/" + ref[1], type: "GET", cache: false });
+			return that.getFileFromServer({ url: "../" + repo + "/.git/" + ref[1], type: "GET", cache: false });
 		})
 		.then(function (content) {
 			if (content) {
@@ -473,52 +473,53 @@ module.define("replicateRepoIfModified", function (repo) {
 module.define("replicateRepo", function (repo, commit_hash) {
 	var that = this;
 	this.debug("starting replicateRepo()");
+	$("#main_pane").html("Repo has changed, downloading...");
+	this.setCachingButton(true);
 	this.repl_links = {};
+	this.back_links = {};
 	this.replication_count = 0;
-	this.getDocFromServerAndProcess([ repo ])
-	.then(function () {
-		return x.Store.getDoc("dox", repo + "/README.md");
-	})
-	.then(function (doc_obj) {
-		doc_obj.commit_hash = commit_hash;
-		return x.Store.storeDoc("dox", doc_obj);
-	})
-	.then(function () {
-		that.debug("finished replicateRepo()");
-	})
-	.then(null, function (error) {
-		that.error("Error in replicateRepo(): " + error);
-	});
+	return this.getDocFromServerAndProcess([ repo ])
+		.then(function () {
+			return x.Store.getDoc("dox", repo + "/README.md");
+		})
+		.then(function (doc_obj) {
+			doc_obj.commit_hash = commit_hash;
+			return x.Store.storeDoc("dox", doc_obj);
+		})
+		.then(function () {
+			that.setCachingButton();
+			that.debug("finished replicateRepo()");
+		})
+		.then(null, function (error) {
+			that.setCachingButton();
+			that.error("Error in replicateRepo(): " + error);
+		});
 });
 
 
 module.define("getDocFromServerAndProcess", function (path_array) {
-	var that = this,
-		path = that.getFullPath(path_array);
-	// if (this.replication_count > 20) {
-	// 	return;
-	// }
+	var that = this;
 	this.replication_count += 1;
-	return this.getDocFromServer({ url: "../" + path, type: "GET", cache: false })
-	.then(function (content) {
-		// TODO need to check that file is markdown, or skip
-		// that.info("getDocFromServerAndProcess() storing doc: " + path);
-		return that.processRetrievedDoc(path_array, content);
-	})
-	.then(function () {
-		that.info("getDocFromServerAndProcess() stored doc: " + path);
-	})
-	.then(null, function (error) {
-		that.error("getDocFromServerAndProcess(): " + error);
-	})
-	.then(function () {
-		return that.nextDocToReplicate();
-	});
+	return this.getDocFromServer(path_array)
+		.then(function (content) {
+			// TODO need to check that file is markdown, or skip
+			// that.info("getDocFromServerAndProcess() storing doc: " + path);
+			return that.processRetrievedDoc(path_array, content);
+		})
+		.then(function () {
+			that.info("getDocFromServerAndProcess() stored doc: " + path_array);
+		})
+		.then(null, function (error) {
+			that.error("getDocFromServerAndProcess(): " + error);
+		})
+		.then(function () {
+			return that.nextDocToReplicate();
+		});
 });
 
 
 module.define("wait", function (millis) {
-    return new Promise(function (resolve, reject) {
+    return new Promise(function (resolve /*, reject*/) {
     	setTimeout(function () {
     		resolve();
     	},
@@ -528,8 +529,7 @@ module.define("wait", function (millis) {
 
 
 module.define("processRetrievedDoc", function (path_array, content) {
-	var that  = this,
-		path  = this.getFullPath(path_array),
+	var path  = this.getFullPath(path_array),
 		title = this.getDocTitle(path_array, content),
 		links = this.getDocLinks(content);
 
@@ -555,6 +555,7 @@ module.define("addKnownLinks", function (links, path_array) {
 
 	for (i = 0; i < links.length; i += 1) {
 		link = this.getFullPath(this.getPathArray(dir + links[i]));
+		this.back_links[link] = dir;
 		if (typeof this.repl_links[link] !== "boolean") {
 			this.repl_links[link] = false;
 		}
@@ -580,7 +581,7 @@ module.define("nextDocToReplicate", function () {
 module.define("searchSetup", function (selector) {
 	var that = this;
 	this.debug("searchSetup(): " + selector);
-	$(selector).on("blur", function (event) {
+	$(selector).on("blur", function (/*event*/) {
 		var search_str = $(this).val();
 		if (!search_str) {
 			return;
@@ -617,7 +618,7 @@ module.define("runSearch", function (search_str) {
 
 module.define("clearSearch", function (search_str) {
 	$("#main_pane").empty();
-	$("#main_pane").append("<h1>Matches for '" + search_str + "'</h1>")
+	$("#main_pane").append("<h1>Matches for '" + search_str + "'</h1>");
 	$("#left_pane"    ).addClass("hide");
 	$("#curr_location").addClass("hide");
 });
@@ -681,7 +682,7 @@ module.define("displaySearchResults", function (docs, search_str) {
 	this.debug("displaySearchResults() finished");
 });
 
-$(document).on("click", "div.match_result", function (event) {
+$(document).on("click", "div.match_result", function (/*event*/) {
 	var doc_id = $(this).children("span").text(),
 		uri = URI(window.location.href);
 
@@ -697,21 +698,35 @@ $(document).on("submit", function (event) {
 
 
 $(document).ready(function() {
-	if (x.Reader.caching) {
-		$("#caching").addClass("active");
-	}
-	$("#caching").text("Caching " + (x.Reader.caching ? "ON" : "OFF"));
+	x.Reader.setCachingButton();
 });
 
 
-$(document).on("click", "#caching", function (event) {
+$(document).on("click", "#caching", function (/*event*/) {
 	x.Reader.caching = $(this).hasClass("active");
-	$(this).text("Caching " + (x.Reader.caching ? "ON" : "OFF"));
-	x.Reader.clearCache();
+	x.Reader.setCachingButton();
+	x.Reader.hashChange();
+//	x.Reader.clearCache();
 });
 
 
-module.define("clearCache", function (params) {
+module.define("setCachingButton", function (started_caching) {
+	var text = "Caching";
+	if (started_caching) {
+		$("#caching").   addClass("btn-info");
+	} else {
+		$("#caching").removeClass("btn-info");
+		if (x.Reader.caching) {
+			text += " ON";
+		} else {
+			text += " OFF";
+		}
+	}
+	$("#caching").text(text);
+});
+
+
+module.define("clearCache", function () {
 	var that = this;
 	x.Store.getAllDocs("dox")
 	.then(function (docs) {
@@ -727,12 +742,12 @@ module.define("clearCache", function (params) {
 
 
 
-$(document).on("click", "#list_docs", function (event) {
+$(document).on("click", "#list_docs", function (/*event*/) {
 	x.Reader.listRepoDocs();
 });
 
 
-module.define("listRepoDocs", function (params) {
+module.define("listRepoDocs", function () {
 	var that = this,
 		repo = this.getLocationPathArray()[0],
 		elem = $("#main_pane"),

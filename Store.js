@@ -4,7 +4,7 @@
 
 var module = x.Base.clone({
         id          : "Store",
-        db_name     : "FastDox",
+        db_name     : "doc_reader",
         store_name  : "dox",
         root_doc_id : "root"
     });
