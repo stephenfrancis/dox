@@ -45,6 +45,12 @@
 			div.match_result .highlight { background-color: yellow; }
 
 			.missing		{ color: red; font-weight: bold; }
+
+			@media print {
+				body { font-family: Arial; }
+			    nav { display: none; }
+			    ul#curr_location  { display: none; }
+			}
 		</style>
 	</head>
 

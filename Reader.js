@@ -75,7 +75,7 @@ module.define("hashChange", function () {
 	var that = this,
 		path_array = this.getLocationPathArray();
 
-	if (path_array[0] !== this.current_repo) {
+	if (path_array[0] !== this.current_repo && this.caching) {
 		that.replicateRepoIfModified(path_array[0])
 			.then(null, function (error) {
 				that.error("Error caught in hashChange(): " + error);
