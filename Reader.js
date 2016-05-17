@@ -59,7 +59,10 @@ module.define("main", function () {
 		.then(null, function (error) {
 			that.error("Error caught in main(): " + error);
 		})
-		.then(function () {
+		.then(function (repo_modified) {
+			if (repo_modified) {
+				that.setCaching(false);
+			}
 			that.current_repo = path_array[0];
 			that.load(path_array);
 		});
@@ -80,7 +83,10 @@ module.define("hashChange", function () {
 			.then(null, function (error) {
 				that.error("Error caught in hashChange(): " + error);
 			})
-			.then(function () {
+			.then(function (repo_modified) {
+				if (repo_modified) {
+					that.setCaching(false);
+				}
 				that.current_repo = path_array[0];
 				that.load(path_array);
 			});
@@ -464,8 +470,10 @@ module.define("replicateRepoIfModified", function (repo) {
 				that.warn("No doc found for repo: " + repo);
 			}
 			if (new_commit_hash !== old_commit_hash) {
-				return that.replicateRepo(repo, new_commit_hash);
+				that.replicateRepo(repo, new_commit_hash);			// do in parallel, so promise is NOT returned
+				return true;
 			}
+			return false;
 		});
 });
 
@@ -474,47 +482,50 @@ module.define("replicateRepo", function (repo, commit_hash) {
 	var that = this;
 	this.debug("starting replicateRepo()");
 	$("#main_pane").html("Repo has changed, downloading...");
-	this.setCachingButton(true);
-	this.repl_links = {};
-	this.back_links = {};
+	this.replicating = true;
+	this.setCachingButton();
+	this.repl_docs  = {};
+	this.repl_doc_queue = [ [ repo ] ];
+	// this.back_links = {};
 	this.replication_count = 0;
-	return this.getDocFromServerAndProcess([ repo ])
+	this.getOrAddReplDoc(repo + "/README.md").commit_hash = commit_hash;
+
+	return this.getNextQueueDocFromServerAndProcess()
 		.then(function () {
-			return x.Store.getDoc("dox", repo + "/README.md");
-		})
-		.then(function (doc_obj) {
-			doc_obj.commit_hash = commit_hash;
-			return x.Store.storeDoc("dox", doc_obj);
-		})
-		.then(function () {
+			that.replicating = false;
+			that.caching     = true;
 			that.setCachingButton();
 			that.debug("finished replicateRepo()");
 		})
 		.then(null, function (error) {
+			that.replicating = false;
 			that.setCachingButton();
 			that.error("Error in replicateRepo(): " + error);
 		});
 });
 
 
-module.define("getDocFromServerAndProcess", function (path_array) {
-	var that = this;
-	this.replication_count += 1;
-	return this.getDocFromServer(path_array)
-		.then(function (content) {
-			// TODO need to check that file is markdown, or skip
-			// that.info("getDocFromServerAndProcess() storing doc: " + path);
-			return that.processRetrievedDoc(path_array, content);
-		})
-		.then(function () {
-			that.info("getDocFromServerAndProcess() stored doc: " + path_array);
-		})
-		.then(null, function (error) {
-			that.error("getDocFromServerAndProcess(): " + error);
-		})
-		.then(function () {
-			return that.nextDocToReplicate();
-		});
+module.define("getNextQueueDocFromServerAndProcess", function () {
+	var that = this,
+		path_array = this.repl_doc_queue.shift();
+
+	if (path_array) {
+		this.info("getNextQueueDocFromServerAndProcess() getting: " + path_array);
+		this.replication_count += 1;
+		return this.getDocFromServer(path_array)
+			.then(function (content) {
+				// TODO need to check that file is markdown, or skip
+				// that.info("getDocFromServerAndProcess() storing doc: " + path);
+				that.processRetrievedDoc(path_array, content);
+			})
+			.then(null, function (error) {
+				that.error(error);
+			})
+			.then(function () {
+				return that.getNextQueueDocFromServerAndProcess();
+			});
+	}
+	return that.nextDocToSave();
 });
 
 
@@ -531,48 +542,58 @@ module.define("wait", function (millis) {
 module.define("processRetrievedDoc", function (path_array, content) {
 	var path  = this.getFullPath(path_array),
 		title = this.getDocTitle(path_array, content),
-		links = this.getDocLinks(content);
+		links = this.getDocLinks(content),
+		doc;
 
 	this.info("processRetrievedDoc(): doc title: " + title + ", links: " + links);
 	this.addKnownLinks(links, path_array);
 
-	return x.Store.storeDoc("dox", {
-		uuid    : path,
-		payload : {
-			title   : title,
-			links   : links,
-			content : content
-		}
-	});
+	doc = this.getOrAddReplDoc(path);
+	doc.title   = title;
+	doc.links   = links;
+	doc.content = content;
 });
 
 
+module.define("getOrAddReplDoc", function (path) {
+	if (!this.repl_docs[path]) {
+		this.repl_docs[path] = { uuid: path };
+		this.repl_docs[path].back_links = [];
+		this.repl_doc_queue.push(this.getPathArray(path));
+	}
+	return this.repl_docs[path];
+});
+
 
 module.define("addKnownLinks", function (links, path_array) {
-	var dir = this.getFullDirectory(path_array) + "/",
+	var dir  = this.getFullDirectory(path_array) + "/",
+		path = this.getFullPath(path_array),
 		i,
 		link;
 
 	for (i = 0; i < links.length; i += 1) {
 		link = this.getFullPath(this.getPathArray(dir + links[i]));
-		this.back_links[link] = dir;
-		if (typeof this.repl_links[link] !== "boolean") {
-			this.repl_links[link] = false;
-		}
+		this.getOrAddReplDoc(link).back_links.push(path);
 	}
 });
 
 
-module.define("nextDocToReplicate", function () {
-	var links = Object.keys(this.repl_links),
-		i;
+module.define("nextDocToSave", function () {
+	var that = this,
+		path = Object.keys(this.repl_docs)[0];
 
-	for (i = 0; i < links.length; i += 1) {
-		if (!this.repl_links[links[i]]) {
-			this.repl_links[links[i]] = true;			// this one done
-			return this.getDocFromServerAndProcess(this.getPathArray(links[i]));
-		}
+	if (path) {
+		this.info("nextDocToSave() setting: " + path);
+		return x.Store.storeDoc("dox", this.repl_docs[path])
+			.then(null, function (error) {
+				that.error(error);
+			})
+			.then(function () {
+				delete that.repl_docs[path];
+				that.nextDocToSave();
+			});
 	}
+	return new Promise();
 });
 
 
@@ -581,7 +602,7 @@ module.define("nextDocToReplicate", function () {
 module.define("searchSetup", function (selector) {
 	var that = this;
 	this.debug("searchSetup(): " + selector);
-	$(selector).on("blur", function (/*event*/) {
+	function runSearch(/*event*/) {
 		var search_str = $(this).val();
 		if (!search_str) {
 			return;
@@ -591,6 +612,12 @@ module.define("searchSetup", function (selector) {
 			return;
 		}
 		that.runSearch(search_str);
+	}
+	$(selector).on("blur"  , runSearch);
+	$(selector).on("keyup" , function (event) {
+		if (event.keyCode === 13) {
+			runSearch();
+		}
 	});
     // $(selector).typeahead({
     //     minLength: 4,        // min chars typed to trigger typeahead
@@ -710,13 +737,25 @@ $(document).on("click", "#caching", function (/*event*/) {
 });
 
 
-module.define("setCachingButton", function (started_caching) {
+module.define("setCaching", function (caching) {
+	this.caching = caching;
+	if (caching) {
+		$("#caching").   addClass("active");
+	} else {
+		$("#caching").removeClass("active");
+	}
+	this.setCachingButton();
+});
+
+
+module.define("setCachingButton", function () {
 	var text = "Caching";
-	if (started_caching) {
+	if (this.replicating) {
 		$("#caching").   addClass("btn-info");
+		text = "Refreshing Cache";
 	} else {
 		$("#caching").removeClass("btn-info");
-		if (x.Reader.caching) {
+		if (this.caching) {
 			text += " ON";
 		} else {
 			text += " OFF";
