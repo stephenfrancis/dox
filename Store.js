@@ -71,18 +71,22 @@ module.define("rebuildStore", function () {
 // last_upd is automatically set on doc_obj
 module.define("storeDoc", function (store_id, doc_obj) {
     var that = this;
-    if (typeof doc_obj.uuid !== "string" || !doc_obj.uuid) {
-        throw new Error("doc must have a non-blank string uuid");
-    }
-    if (typeof doc_obj.payload !== "object" || typeof doc_obj.payload.title !== "string") {
-        throw new Error("doc must have a payload object containing a string title");
-    }
-
-    doc_obj.last_upd = (new Date()).toISOString();
-
     return new Promise(function (resolve, reject) {
-        var tx = that.db.transaction(store_id, "readwrite"),
-            store = tx.objectStore(store_id);
+        var tx,
+            store;
+
+        if (typeof doc_obj.uuid !== "string" || !doc_obj.uuid) {
+            reject("doc must have a non-blank string uuid");
+            return;
+        }
+        if (typeof doc_obj.payload !== "object" || typeof doc_obj.payload.title !== "string") {
+            reject("doc must have a payload object containing a string title: " + doc_obj.uuid);
+            return;
+        }
+        doc_obj.last_upd = (new Date()).toISOString();
+
+        tx = that.db.transaction(store_id, "readwrite");
+        store = tx.objectStore(store_id);
 
         store.put(doc_obj);
         tx.oncomplete = function () {

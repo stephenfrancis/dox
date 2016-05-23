@@ -1,4 +1,4 @@
-/*global x, $, indexedDB, UUID, URI, Promise, marked, console, window, alert, document */
+/*global x, $, indexedDB, UUID, URI, Viz, Promise, marked, console, window, alert, document */
 "use strict";
 
 
@@ -14,7 +14,9 @@ Path Behaviour
 * path ending in '/'' implies ending in '/README.md'
 */
 
-var module = x.Base.clone({
+var uriFunction = URI,
+	vizFunction = Viz,
+	module = x.Base.clone({
     id          : "Reader",
     path 		: null,
     parts 		: null,
@@ -36,7 +38,7 @@ module.define("start", function () {
 
 
 module.define("getLocationPathArray", function () {
-	var uri = URI(window.location.href),
+	var uri = uriFunction(window.location.href),
 		path = uri.fragment(),
 		path_arr = this.getPathArray(path);
 
@@ -302,7 +304,7 @@ module.define("applyViz", function (elmt, dir) {
 	text = text.replace(/[“”]/g, "\"");			// marked replaces plain double-quotes with fancy ones...
 	text = text.replace(/URL="(.*)"/g, "URL=\"#" + dir + "/$1\"");
 	this.debug("applyViz(): " + text);
-	$(elmt).html(Viz(text, "svg"));
+	$(elmt).html(vizFunction(text, "svg"));
 });
 
 
@@ -519,7 +521,7 @@ module.define("getNextQueueDocFromServerAndProcess", function () {
 				that.processRetrievedDoc(path_array, content);
 			})
 			.then(null, function (error) {
-				that.error(error);
+				that.error("getNextQueueDocFromServerAndProcess(): " + error);
 			})
 			.then(function () {
 				return that.getNextQueueDocFromServerAndProcess();
@@ -545,13 +547,18 @@ module.define("processRetrievedDoc", function (path_array, content) {
 		links = this.getDocLinks(content),
 		doc;
 
+	if (!path.match(/\.md$/)) {
+		return;
+	}
 	this.info("processRetrievedDoc(): doc title: " + title + ", links: " + links);
 	this.addKnownLinks(links, path_array);
 
 	doc = this.getOrAddReplDoc(path);
-	doc.title   = title;
-	doc.links   = links;
-	doc.content = content;
+	doc.payload = {
+		title   : title,
+		links   : links,
+		content : content
+	};
 });
 
 
@@ -586,24 +593,30 @@ module.define("nextDocToSave", function () {
 		this.info("nextDocToSave() setting: " + path);
 		return x.Store.storeDoc("dox", this.repl_docs[path])
 			.then(null, function (error) {
-				that.error(error);
+				that.error("nextDocToSave() " + error);
 			})
 			.then(function () {
 				delete that.repl_docs[path];
 				that.nextDocToSave();
 			});
 	}
-	return new Promise();
+	return new Promise(function (resolve /*, reject*/) {
+		resolve();
+	});
 });
 
 
+$(document).on("submit", function (event) {
+	event.preventDefault();
+	return false;
+});
 
 
 module.define("searchSetup", function (selector) {
 	var that = this;
 	this.debug("searchSetup(): " + selector);
 	function runSearch(/*event*/) {
-		var search_str = $(this).val();
+		var search_str = $(selector).val();
 		if (!search_str) {
 			return;
 		}
@@ -611,6 +624,7 @@ module.define("searchSetup", function (selector) {
 			alert("search string should be at least 4 characters");
 			return;
 		}
+		$(selector).val("");
 		that.runSearch(search_str);
 	}
 	$(selector).on("blur"  , runSearch);
@@ -711,16 +725,10 @@ module.define("displaySearchResults", function (docs, search_str) {
 
 $(document).on("click", "div.match_result", function (/*event*/) {
 	var doc_id = $(this).children("span").text(),
-		uri = URI(window.location.href);
+		uri = uriFunction(window.location.href);
 
 	uri.fragment(doc_id);
 	window.location.href = uri.toString();
-});
-
-
-$(document).on("submit", function (event) {
-    event.preventDefault();
-	return false;
 });
 
 
