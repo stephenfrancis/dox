@@ -14,13 +14,13 @@
 			h2	 { font-size: 16pt; }
 			h3	 { font-size: 14pt; }
 			h4	 { font-size: 12pt; }
-			body { font-size: 10pt; padding: 20px; }
+			body { font-size: 10pt; }
 			img	 { max-width: inherit; }		/* override TB setting and allow images to be their own size */
 
 			#search_box		{ margin: 10px }
-			#curr_location	{ margin-bottom: 0; border-radius: 10px; }
-			#left_pane 		{ padding: 10px; flex-basis: 40%; background-color: #f5f5f5; margin-right: 20px; border-radius: 0 0 10px 10px; }
-			#main_pane		{ padding: 10px; flex-basis: 60%; }
+			#curr_location	{ margin: 10px; padding: 0; float: left; background-color: white; }
+			#left_pane 		{ padding: 20px; flex-basis: 40%; background-color: #f5f5f5; margin-right: 20px; border-radius: 0 0 10px 10px; }
+			#main_pane		{ padding: 20px; flex-basis: 60%; }
 
 			#curr_location ul { list-style-type: none; margin-left: 10px;  }
 			ol 				{ padding-bottom: 5px; }
@@ -29,16 +29,15 @@
 			/* Viz Styling... */
 			.node			{ font-family: Arial; }
 
-			code 			{ display: block; white-space: pre-wrap; }
-
 			.flex_item		{ flex: 1 1 50% }
 			@media (max-width: 767px) {
 				.flex_item_desktop	{ flex: 0 0 0%; display: none; }
+				#main_pane		{ padding: 0px; }
 			}
-			@media (min-width: 768px) {
-				#curr_location		{ border-radius: 10px 10px 10px 0; }
+			@media (max-width: 979px) {
+				nav.navbar-fixed-top	{ margin-bottom: 0; }
+				nav.navbar-fixed-top .navbar-inner	{ padding: 0; }
 			}
-
 			div.match_result { border: 1px solid #ccc; margin: 0 10px 10px 0; border-radius: 5px; padding: 10px; }
 			div.match_result:hover { background-color: #eee; cursor: pointer; }
 			div.match_result > span { margin-left: 40px; color: #ccc; float: right; }
@@ -61,10 +60,10 @@
 				<form class="navbar-search pull-left" id="search_box">
 					<input type="text" placeholder="search" class="search-query" />
 				</form>
-				<ul class="nav nav-pills" id="menu_container" role="navigation">
-					<li>
-					</li>
+
+				<ul id="curr_location" class="breadcrumb">
 				</ul>
+
 				<div class="btn-group pull-right" style="margin: 15px 10px 0 0;">
 					<a id="caching" type="button" class="btn btn-mini active" data-toggle="button" title="get documents from local storage instead of the server">Caching</a>
 					<a id="list_docs" type="button" class="btn btn-mini" title="list the cached documents in this repo, and highlight broken links">List Docs</a>
@@ -72,11 +71,8 @@
 			</div><!-- /.navbar-inner -->
 		</nav><!-- /.navbar -->
 
-		<div class="hidden-phone hidden-tablet" style="height: 60px">
+		<div class="hidden-phone hidden-tablet" style="height: 50px">
 		</div>
-
-		<ul id="curr_location" class="breadcrumb">
-		</ul>
 
 		<div id="container" style="display: flex; flex-direction: row">
 

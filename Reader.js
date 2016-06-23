@@ -10,7 +10,6 @@ Path Behaviour
 4. last path element blank implies dir, i.e. README.md
 5. for main path,
 * no path or blank path implies /
-* / implies /{default_repo}/
 * path ending in '/'' implies ending in '/README.md'
 */
 
@@ -21,7 +20,6 @@ var uriFunction = URI,
     path 		: null,
     parts 		: null,
     page 		: null,
-	default_repo: "rsl-app-docs",		// TODO - don't want this hard-coded
 	caching		: true,
 	current_repo: null,
 	replicate   : true
@@ -42,9 +40,9 @@ module.define("getLocationPathArray", function () {
 		path = uri.fragment(),
 		path_arr = this.getPathArray(path);
 
-	if (path_arr.length === 0 || (path_arr.length === 1 && path_arr[0] === "")) {
-		path_arr = [ this.default_repo ];
-	}
+	// if (path_arr.length === 0 || (path_arr.length === 1 && path_arr[0] === "")) {
+	// 	path_arr = [ this.default_repo ];
+	// }
 	return path_arr;
 });
 
@@ -54,10 +52,11 @@ module.define("main", function () {
 		path_array = this.getLocationPathArray(),
 		repo = path_array[0];
 
-	that.loadMenu()
-		.then(function () {
-			return that.replicateRepoIfModified(repo);
-		})
+	if (!repo) {
+		alert("Sorry, that link isn't valid, please can you check with whoever or wherever you got it from?");
+		return;
+	}
+	this.replicateRepoIfModified(repo)
 		.then(null, function (error) {
 			that.error("Error caught in main(): " + error);
 		})
@@ -80,6 +79,10 @@ module.define("hashChange", function () {
 	var that = this,
 		path_array = this.getLocationPathArray();
 
+	if (!path_array[0]) {
+		alert("Sorry, that link isn't valid, please can you check with whoever or wherever you got it from?");
+		return;
+	}
 	if (path_array[0] !== this.current_repo && this.caching) {
 		that.replicateRepoIfModified(path_array[0])
 			.then(null, function (error) {
@@ -330,8 +333,8 @@ module.define("setCurrLocation", function (selector, path_array, content) {
 	$(document).attr("title", title);
 //    			document.title = page;
 
-	$("#menu_container .active").removeClass("active");
-	$("#menu_container").find("#" + path_array[0]).addClass("active");
+	// $("#menu_container .active").removeClass("active");
+	// $("#menu_container").find("#" + path_array[0]).addClass("active");
 });
 
 
@@ -709,13 +712,13 @@ module.define("displaySearchResults", function (docs, search_str) {
 	}
 
 	for (i = 0; i < docs.length; i += 1) {
-		if (docs[i].payload && regex2.exec(docs[i].payload.title)) {
+		if (docs[i].uuid.indexOf(this.current_repo) === 0 && docs[i].payload && regex2.exec(docs[i].payload.title)) {
 			getOrAddDoc(docs[i]);
 		}
 	}
 
 	for (i = 0; i < docs.length; i += 1) {
-		if (docs[i].payload && typeof docs[i].payload.content === "string") {
+		if (docs[i].uuid.indexOf(this.current_repo) === 0 && docs[i].payload && typeof docs[i].payload.content === "string") {
 			docs[i].payload.content.replace(regex1, addMatch);
 		}
 	}
