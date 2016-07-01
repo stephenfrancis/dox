@@ -56,6 +56,7 @@ module.define("main", function () {
 		alert("Sorry, that link isn't valid, please can you check with whoever or wherever you got it from?");
 		return;
 	}
+	this.loadLogo(repo);
 	this.replicateRepoIfModified(repo)
 		.then(null, function (error) {
 			that.error("Error caught in main(): " + error);
@@ -83,6 +84,7 @@ module.define("hashChange", function () {
 		alert("Sorry, that link isn't valid, please can you check with whoever or wherever you got it from?");
 		return;
 	}
+	this.loadLogo(path_array[0]);
 	if (path_array[0] !== this.current_repo && this.caching) {
 		that.replicateRepoIfModified(path_array[0])
 			.then(null, function (error) {
@@ -293,6 +295,12 @@ module.define("loadMenu", function () {
 	}).then(null, function (/*error*/) {
 		$("#menu_container").append("<span>no menu defined - copy menu.html.template to menu.html and edit to set up menu</span>");
 	});
+});
+
+
+module.define("loadLogo", function (repo) {
+	$("#repo_logo").attr("href", "#" + repo);
+	$("#repo_logo > img").attr("src", "../" + repo + "/logo.png");
 });
 
 
