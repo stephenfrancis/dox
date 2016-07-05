@@ -163,7 +163,7 @@ module.define("getPathArray", function (path_arg) {
 	var path_arr;
 	path_arg = path_arg || "";
 	path_arr = path_arg.split("/");
-	this.normailzePathArray(path_arr);
+	this.normalizePathArray(path_arr);
 	if (path_arr[path_arr.length - 1] === "README.md") {
 		path_arr.pop();
 	}
@@ -172,7 +172,7 @@ module.define("getPathArray", function (path_arg) {
 });
 
 
-module.define("normailzePathArray", function (path_arr, addl_path_arr) {
+module.define("normalizePathArray", function (path_arr, addl_path_arr) {
 	var i = 1;
 	if (addl_path_arr) {
 		path_arr = path_arr.concat(addl_path_arr);
@@ -256,7 +256,7 @@ module.define("isRelativeURL", function (url) {
 module.define("convertPathAttribute", function (dir, selector, attr, prefix) {
 	var href = selector.attr(attr);
 	if (this.isRelativeURL(href)) {	// protocol not specified, relative URL
-		href = prefix + dir + "/" + href;
+		href = prefix + this.getPathArray(dir + "/" + href).join("/");
 		selector.attr(attr, href);
 	}
 });
@@ -739,7 +739,8 @@ $(document).on("click", "div.match_result", function (/*event*/) {
 		uri = uriFunction(window.location.href);
 
 	uri.fragment(doc_id);
-	window.location.href = uri.toString();
+	window.open(uri.toString());
+	// window.location.href = uri.toString();
 });
 
 
@@ -812,7 +813,7 @@ module.define("listRepoDocs", function () {
 		found_docs = {};
 
 	elem.empty();
-	elem.append("<table class='table'><thead><tr><th>Path / Title</th><th>Last Modified</th><th>Internal Links</th></tr></thead><tbody/></table>");
+	elem.append("<table class='table' id='repo_index'><thead><tr><th>Path / Title</th><th>Last Modified</th><th>Internal Links</th></tr></thead><tbody/></table>");
 	elem = elem.find("table > tbody");
 
 	function addDoc(doc) {
@@ -824,7 +825,7 @@ module.define("listRepoDocs", function () {
 			return;				// filter on chosen repo
 		}
 		path  = that.getFullPath(path_arr);
-		html  = "<tr><td>" + path;
+		html  = "<tr><td><a href='#" + repo + "/" + path + "' target='_blank'>" + path + "</a>";
 		html += (doc.payload ? "<br/>" + doc.payload.title : "");
 		html += "</td><td>" + doc.last_upd + "</td><td>";
 		if (doc.payload && doc.payload.links && doc.uuid.match(/\.md$/)) {
@@ -833,7 +834,7 @@ module.define("listRepoDocs", function () {
 			}
 			html += "<ul>";
 			doc.payload.links.forEach(function (link) {
-				html += "<li class='missing'>" + that.getFullPath(that.normailzePathArray(path_arr, link.split("/"))) + "</li>";
+				html += "<li class='missing'>" + that.getFullPath(that.normalizePathArray(path_arr, link.split("/"))) + "</li>";
 			});
 			html += "</ul>";
 		}
@@ -850,7 +851,8 @@ module.define("listRepoDocs", function () {
 				addDoc(doc);
 			});
 			elem.find("li.missing").each(function () {
-				if (found_docs[$(this).text()]) {
+				var file_id = $(this).text();
+				if (found_docs[file_id] || !file_id.endsWith(".md")) {
 					$(this).removeClass("missing");
 				}
 			});
