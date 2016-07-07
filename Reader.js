@@ -233,11 +233,11 @@ module.define("convertAndDisplay", function (selector, path_array, content) {
 	$(selector).find("table").addClass("table");			// style as TB tables
 
 	$(selector).find("a[href]").each(function () {
-		that.convertPathAttribute(dir, $(this), "href", "#");
+		that.convertPathAttribute(dir, $(this), "href");
 	});
 
 	$(selector).find("img[src]").each(function () {
-		that.convertPathAttribute(dir, $(this), "src" , "../");
+		that.convertPathAttribute(dir, $(this), "src");
 	});
 
 	$(selector).find("p").each(function () {
@@ -253,9 +253,12 @@ module.define("isRelativeURL", function (url) {
 	return (url.indexOf(":") === -1 && url.indexOf("#") !== 0 && url.indexOf("/") !== 0 && url.indexOf("\\") !== 0);
 });
 
-module.define("convertPathAttribute", function (dir, selector, attr, prefix) {
-	var href = selector.attr(attr);
-	if (this.isRelativeURL(href)) {	// protocol not specified, relative URL
+module.define("convertPathAttribute", function (dir, selector, attr /*, prefix*/) {
+	var href = selector.attr(attr),
+		type = href.match(/\.([a-z]{2,4})$/),		// Directories and Markdown files prefixed with '#';
+		prefix = (!type || type.length < 2 || type[1] === "md") ? "#" : "../";		// all others with '../'
+
+	if (this.isRelativeURL(href)) {					// protocol not specified, relative URL
 		href = prefix + this.getPathArray(dir + "/" + href).join("/");
 		selector.attr(attr, href);
 	}
@@ -759,11 +762,6 @@ $(document).on("click", "#caching", function (/*event*/) {
 
 module.define("setCaching", function (caching) {
 	this.caching = caching;
-	if (caching) {
-		$("#caching").   addClass("active");
-	} else {
-		$("#caching").removeClass("active");
-	}
 	this.setCachingButton();
 });
 
@@ -782,6 +780,11 @@ module.define("setCachingButton", function () {
 		}
 	}
 	$("#caching").text(text);
+	if (this.caching) {
+		$("#caching").   addClass("active");
+	} else {
+		$("#caching").removeClass("active");
+	}
 });
 
 
