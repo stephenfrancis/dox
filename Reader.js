@@ -463,6 +463,10 @@ module.define("replicateRepoIfModified", function (repo) {
 			if (content) {
 				ref = content.match(/ref:\ (.*)/);
 			}
+            if (!ref && content) {
+                new_commit_hash = content.trim();
+                return;
+            }
 			if (!ref || ref.length < 2 || !ref[1]) {
 				throw "No ref found: " + content + ", for repo " + repo;
 			}
