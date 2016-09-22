@@ -16,14 +16,14 @@ Path Behaviour
 var uriFunction = URI,
 	vizFunction = Viz,
 	module = x.Base.clone({
-    id          : "Reader",
-    path 		: null,
-    parts 		: null,
-    page 		: null,
-	caching		: true,
-	current_repo: null,
-	replicate   : true
-});
+	    id          : "Reader",
+	    path 		: null,
+	    parts 		: null,
+	    page 		: null,
+		caching		: true,
+		current_repo: null,
+		replicate   : true
+	});
 
 x.Reader = module;
 x.Base  .log_level = x.Base.log_levels.warn;
@@ -31,43 +31,7 @@ x.Store .log_level = x.Base.log_levels.warn;
 x.Reader.log_level = x.Base.log_levels.error;
 
 module.define("start", function () {
-	this.main();
-});
-
-
-module.define("getLocationPathArray", function () {
-	var uri = uriFunction(window.location.href),
-		path = uri.fragment(),
-		path_arr = this.getPathArray(path);
-
-	// if (path_arr.length === 0 || (path_arr.length === 1 && path_arr[0] === "")) {
-	// 	path_arr = [ this.default_repo ];
-	// }
-	return path_arr;
-});
-
-
-module.define("main", function () {
-	var that = this,
-		path_array = this.getLocationPathArray(),
-		repo = path_array[0];
-
-	if (!repo) {
-		alert("Sorry, that link isn't valid, please can you check with whoever or wherever you got it from?");
-		return;
-	}
-	this.loadLogo(repo);
-	this.replicateRepoIfModified(repo)
-		.then(null, function (error) {
-			that.error("Error caught in main(): " + error);
-		})
-		.then(function (repo_modified) {
-			if (repo_modified) {
-				that.setCaching(false);
-			}
-			that.current_repo = path_array[0];
-			that.load(path_array);
-		});
+	this.hashChange();
 });
 
 
@@ -77,8 +41,39 @@ window.onhashchange = function () {
 
 
 module.define("hashChange", function () {
+	var fragment   = uriFunction(window.location.href).fragment(),
+		params     = this.processFragment(fragment);
+
+	if (!params.action) {
+		params.action = "view";
+	}
+	if (typeof this["action_" + params.action] !== "function") {
+		alert("Invalid action: " + params.action);
+		return;
+	}
+	this["action_" + params.action](params);
+});
+
+
+module.define("processFragment", function (fragment) {
+	var params = {},
+		pairs  = fragment.split("&");
+
+	pairs.forEach(function (pair) {
+		var parts = pair.split("=");
+		if (parts.length > 1) {
+			params[parts[0]] = decodeURIComponent(parts[1]);
+		} else if (!params.path) {		// interpret a param without '=' as a path
+			params.path = parts[0];		// if path not already specified
+		}
+	});
+	return params;
+});
+
+
+module.define("action_view", function (params) {
 	var that = this,
-		path_array = this.getLocationPathArray();
+		path_array = this.getPathArray(params.path);
 
 	if (!path_array[0]) {
 		alert("Sorry, that link isn't valid, please can you check with whoever or wherever you got it from?");
@@ -95,7 +90,7 @@ module.define("hashChange", function () {
 					that.setCaching(false);
 				}
 				that.current_repo = path_array[0];
-				that.load(path_array);
+				that.load(path_array, params.search_match);
 			});
 	} else {
 		that.load(path_array);
@@ -103,7 +98,17 @@ module.define("hashChange", function () {
 });
 
 
-module.define("load", function (path_array) {
+module.define("action_index", function () {
+	this.listRepoDocs();
+});
+
+
+module.define("action_search", function (params) {
+	this.runSearch(params.term);
+});
+
+
+module.define("load", function (path_array, search_match) {
 	var that = this,
 		parent_path = [];
 
@@ -122,6 +127,9 @@ module.define("load", function (path_array) {
 		.then(function (content) {
 			that.convertAndDisplay("#main_pane"  , path_array, content);
 			that.setCurrLocation("#curr_location", path_array, content);
+			if (search_match) {
+				that.highlightSearchMatch("#main_pane", search_match);
+			}
 		})
 		.then(null, function (error) {
 			$("#main_pane").html(error + " :-(");
@@ -256,7 +264,7 @@ module.define("isRelativeURL", function (url) {
 module.define("convertPathAttribute", function (dir, selector, attr /*, prefix*/) {
 	var href = selector.attr(attr),
 		type = href.match(/\.([a-z]{2,4})$/),		// Directories and Markdown files prefixed with '#';
-		prefix = (!type || type.length < 2 || type[1] === "md") ? "#" : "../";		// all others with '../'
+		prefix = (!type || type.length < 2 || type[1] === "md") ? "#action=view&path=" : "../";		// all others with '../'
 
 	if (this.isRelativeURL(href)) {					// protocol not specified, relative URL
 		href = prefix + this.getPathArray(dir + "/" + href).join("/");
@@ -266,7 +274,7 @@ module.define("convertPathAttribute", function (dir, selector, attr /*, prefix*/
 
 
 module.define("highlightLink", function (selector, path_array) {
-	var match_path = "#";
+	var match_path = "#action=view&path=";
 	if (this.isFile(path_array)) {
 		match_path += this.getFullPath(path_array);
 	} else {
@@ -279,6 +287,11 @@ module.define("highlightLink", function (selector, path_array) {
 			$(this).css("text-decoration", "underline");
 		}
 	});
+});
+
+
+module.define("highlightSearchMatch", function (selector, search_match) {
+	return undefined;			// TODO
 });
 
 
@@ -308,15 +321,15 @@ module.define("loadLogo", function (repo) {
 
 
 module.define("applyViz", function (elmt, dir) {
-	var text = $(elmt).text().replace("{", "{" +
-	    " graph [ penwidth=0.5, bgcolor=transparent ]; " +
-		" node  [ fontname=Arial, fontsize=10, shape=box, style=rounded ]; " +
-		" edge  [ fontname=Arial, fontsize=10 ]; ");
+	var text = $(elmt).text().replace("{", "{ " +
+	    " graph [ penwidth=0.1, bgcolor=transparent ]; " +
+		" node  [ fontname=Arial, fontsize=9, shape=box, style=rounded ]; " +
+		" edge  [ fontname=Arial, fontsize=9 ]; ");
 
 // tried adding ", fixedsize=true, width=2" to node [] above, but caused issues when text width exceeded box width (2 inches) - text doesn't wrap
 
 	text = text.replace(/[“”]/g, "\"");			// marked replaces plain double-quotes with fancy ones...
-	text = text.replace(/URL="(.*)"/g, "URL=\"#" + dir + "/$1\"");
+	text = text.replace(/URL="(.*)"/g, "URL=\"#action=view&path=" + dir + "/$1\"");
 	this.debug("applyViz(): " + text);
 	$(elmt).html(vizFunction(text, "svg"));
 });
@@ -332,7 +345,7 @@ module.define("setCurrLocation", function (selector, path_array, content) {
 	elmt.empty();
 	for (i = 0; i < path_array.length - 1; i += 1) {
 		concat_path += path_array[i] + "/";
-		this.addBreadcrumb(elmt, "#" + concat_path, path_array[i]);
+		this.addBreadcrumb(elmt, "#action=view&path=" + concat_path, path_array[i]);
 		// elmt = this.addUL(elmt);
 		// elmt = this.addBulletLink(elmt, "#" + concat_path + "README.md", path_array[i]);
 	}
@@ -627,19 +640,20 @@ $(document).on("submit", function (event) {
 
 
 module.define("searchSetup", function (selector) {
-	var that = this;
+	// var that = this;
 	this.debug("searchSetup(): " + selector);
 	function runSearch(/*event*/) {
 		var search_str = $(selector).val();
 		if (!search_str) {
 			return;
 		}
+		$(selector).val("");
 		if (search_str.length < 4) {
 			alert("search string should be at least 4 characters");
 			return;
 		}
-		$(selector).val("");
-		that.runSearch(search_str);
+		window.location.href = "#action=search&term=" + encodeURIComponent(search_str);
+		// that.runSearch(search_str);
 	}
 	$(selector).on("blur"  , runSearch);
 	$(selector).on("keyup" , function (event) {
@@ -659,8 +673,8 @@ module.define("searchSetup", function (selector) {
 
 module.define("runSearch", function (search_str) {
 	var that = this;
-
 	this.debug("runSearch(): " + search_str);
+	this.search_str = search_str;
 	this.clearSearch(search_str);
 	x.Store.getAllDocs("dox")
 		.then(function (docs) {
@@ -738,12 +752,12 @@ module.define("displaySearchResults", function (docs, search_str) {
 });
 
 $(document).on("click", "div.match_result", function (/*event*/) {
-	var doc_id = $(this).children("span").text(),
-		uri = uriFunction(window.location.href);
+	var doc_id = $(this).children("span").text();
+		// uri = uriFunction(window.location.href);
 
-	uri.fragment(doc_id);
-	window.open(uri.toString());
-	// window.location.href = uri.toString();
+	// uri.fragment(doc_id);
+	// window.open(uri.toString());
+	window.location.href = "#action=view&path=" + doc_id + "&search_match=" + encodeURIComponent(x.Reader.search_str);
 });
 
 
@@ -804,14 +818,13 @@ module.define("clearCache", function () {
 
 
 
-$(document).on("click", "#list_docs", function (/*event*/) {
-	x.Reader.listRepoDocs();
-});
-
+// $(document).on("click", "#list_docs", function (/*event*/) {
+// 	x.Reader.listRepoDocs();
+// });
 
 module.define("listRepoDocs", function () {
 	var that = this,
-		repo = this.getLocationPathArray()[0],
+		repo = this.current_repo,
 		elem = $("#main_pane"),
 		found_docs = {};
 
