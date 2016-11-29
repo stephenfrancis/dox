@@ -200,7 +200,7 @@ module.define("normalizePathArray", function (path_arr, addl_path_arr) {
 
 
 module.define("isFile", function (path_array, alt_filename) {
-	var regex = /\.[a-z]{2,4}$/;
+	var regex = /\.[a-zA-Z]{2,4}$/;
 	if (alt_filename) {
 		return !!alt_filename.match(regex);
 	}
@@ -263,7 +263,7 @@ module.define("isRelativeURL", function (url) {
 
 module.define("convertPathAttribute", function (dir, selector, attr /*, prefix*/) {
 	var href = selector.attr(attr),
-		type = href.match(/\.([a-z]{2,4})$/),		// Directories and Markdown files prefixed with '#';
+		type = href.match(/\.([a-zA-Z]{2,4})$/),		// Directories and Markdown files prefixed with '#';
 		prefix = (!type || type.length < 2 || type[1] === "md") ? "#action=view&path=" : "../";		// all others with '../'
 
 	if (this.isRelativeURL(href)) {					// protocol not specified, relative URL
