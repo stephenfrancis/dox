@@ -39,7 +39,7 @@ module.exports.store = Store.StoreIndexedDB.clone({
     id: "StoreIndexedDB",
     db_id: module.exports.current_repo,  // string database name
     store_id: "dox",             // string store name
-    version: 15,                  // integer version sequence
+    version: 1,                  // integer version sequence
     create_properties: { keyPath: "uuid", },
     indexes: [
         {
@@ -51,14 +51,20 @@ module.exports.store = Store.StoreIndexedDB.clone({
 });
 
 
-Core.Base.setLogLevel(Core.Base.log_levels.debug);
-
-
 module.exports.define("start", function (spec) {
     var that = this;
+    if (typeof spec.log_level === "number") {
+        Core.Base.setLogLevel(spec.log_level)
+        delete spec.log_level;
+    }
+    if (typeof spec.store_version === "number") {
+        this.store.version = spec.store_version;
+        delete spec.store_version;
+    }
     this.addProperties(spec);
     this.validateConfig();
     this.setupDocumentBindings();
+    this.searchSetup();
     this.store.start()
     .then(function () {
         if (that.caching) {
@@ -89,19 +95,17 @@ module.exports.define("validateConfig", function () {
     if (!this.selectors) {
         this.throwError("selectors is not defined");
     }
-    if (!this.selectors.left_pane || jQuery(this.selectors.left_pane).length !== 1) {
-        this.throwError("selectors.left_pane is not defined as a selector for a single element");
-    }
-    if (!this.selectors.main_pane || jQuery(this.selectors.main_pane).length !== 1) {
-        this.throwError("selectors.main_pane is not defined as a selector for a single element");
-    }
-    if (!this.selectors.curr_location || jQuery(this.selectors.curr_location).length !== 1) {
-        this.throwError("selectors.curr_location is not defined as a selector for a single element");
-    }
-    if (!this.selectors.caching || jQuery(this.selectors.caching).length !== 1) {
-        this.throwError("selectors.caching is not defined as a selector for a single element");
-    }
-    if (!this.store || typeof this.store.isDescendantOf !== "function" || !this.store.isDescendantOf(Store.Store)) {
+    this.elements = {};
+
+    this.validateSelector("left_pane");
+    this.validateSelector("main_pane");
+    this.validateSelector("curr_location");
+    this.validateSelector("caching");
+    this.validateSelector("search_box");
+    this.validateSelector("left_pane");
+
+    if (!this.store || typeof this.store.isDescendantOf !== "function"
+            || !this.store.isDescendantOf(Store.Store)) {
         this.throwError("store is not defined as a descendant of Store");
     }
     if (typeof this.store.db_id !== "string") {
@@ -112,6 +116,16 @@ module.exports.define("validateConfig", function () {
     }
 });
 
+
+module.exports.define("validateSelector", function (selector_id) {
+    if (!this.selectors[selector_id]) {
+        this.throwError("selectors." + selector_id + " is not defined in the selectors object");
+    }
+    this.elements[selector_id] = jQuery(this.selectors[selector_id]);
+    if (this.elements[selector_id].length !== 1) {
+        this.throwError("selectors." + selector_id + " is not a selector for a single element");
+    }
+});
 
 module.exports.define("setupDocumentBindings", function () {
     var that = this;
@@ -182,7 +196,7 @@ module.exports.define("processFragment", function (hash) {
 
 
 module.exports.define("action_view", function (params) {
-    var path_array = this.getPathArray(params.path);
+    var path_array = this.getPathArray(params.path, params.search_match);
     this.load(path_array);
 });
 
@@ -199,43 +213,43 @@ module.exports.define("action_search", function (params) {
 
 module.exports.define("load", function (path_array, search_match) {
     var that = this;
-    var parent_path = [];
+    var parent_path;
 
-    this.debug("load(): " + path_array.join("/"));
     if (path_array.length > 0) {
         parent_path = path_array.slice(0, path_array.length - 1);
     }
+    this.debug("load(): " + path_array.join("/") + ", parent_path: " + parent_path);
 
-    jQuery(this.selectors.left_pane).removeClass("hide");
-    jQuery(this.selectors.curr_location).removeClass("hide");
+    this.elements.left_pane.removeClass("hide");
+    this.elements.curr_location.removeClass("hide");
 
     return this.getDocFromLocalOrServer(path_array)
     .then(function (content) {
-        that.convertAndDisplay(that.selectors.main_pane, path_array, content);
-        that.setCurrLocation(that.selectors.curr_location, path_array, content);
+        that.convertAndDisplay(that.elements.main_pane, path_array, content);
+        that.setCurrLocation(that.elements.curr_location, path_array, content);
         if (search_match) {
-            that.highlightSearchMatch(that.selectors.main_pane, search_match);
+            that.highlightSearchMatch(that.elements.main_pane, search_match);
         }
     })
     .then(null, function (error) {
-        jQuery(that.selectors.main_pane).html(error + " :-(");
+        that.elements.main_pane.html(error + " :-(");
     })
     .then(function () {
-        if (parent_path.length > 0) {
+        if (parent_path) {
             return that.getDocFromLocalOrServer(parent_path);
         }
     })
     .then(function (content) {
         if (content) {
-            that.convertAndDisplay(that.selectors.left_pane, parent_path, content);
-            that.highlightLink(that.selectors.left_pane, path_array);
+            that.convertAndDisplay(that.elements.left_pane, parent_path, content);
+            that.highlightLink(that.elements.left_pane, path_array);
         } else {
-            jQuery(that.selectors.left_pane).empty();
+            that.elements.left_pane.empty();
         }
         return path_array;
     })
     .then(null, function (error) {
-        jQuery(that.selectors.left_pane).html(error + " :-(");
+        that.elements.left_pane.html(error + " :-(");
     });
 });
 
@@ -321,26 +335,27 @@ module.exports.define("getFullDirectory", function (path_array) {
 });
 
 
-module.exports.define("convertAndDisplay", function (selector, path_array, content) {
+module.exports.define("convertAndDisplay", function (element, path_array, content) {
     var that = this;
     var dir  = this.getFullDirectory(path_array);
 
     this.debug("convertAndDisplay(): " + dir);
-    jQuery(selector).html(marked(content, { smartypants: true }));
+    element.html(marked(content, { smartypants: true }));
 
-    jQuery(selector).find("table").addClass("table");            // style as TB tables
+    element.find("table").addClass("table");            // style as TB tables
 
-    jQuery(selector).find("a[href]").each(function () {
+    element.find("a[href]").each(function () {
         that.convertPathAttribute(dir, jQuery(this), "href");
     });
 
-    jQuery(selector).find("img[src]").each(function () {
+    element.find("img[src]").each(function () {
         that.convertPathAttribute(dir, jQuery(this), "src");
     });
 
-    jQuery(selector).find("p").each(function () {
-        if (jQuery(this).text().indexOf("digraph") === 0) {
-            that.applyViz(this, dir);
+    element.find("p").each(function () {
+        var elem_p = jQuery(this);
+        if (elem_p.text().indexOf("digraph") === 0) {
+            that.applyViz(elem_p, dir);
         }
     });
     jQuery(window).scrollTop(0);
@@ -351,30 +366,33 @@ module.exports.define("isRelativeURL", function (url) {
     return (url.indexOf(":") === -1 && url.indexOf("#") !== 0 && url.indexOf("/") !== 0 && url.indexOf("\\") !== 0);
 });
 
+
 module.exports.define("convertPathAttribute", function (dir, selector, attr /*, prefix*/) {
     var href = this.convertPath(dir, selector.attr(attr));
     selector.attr(attr, href);
 });
 
+
 module.exports.define("convertPath", function (dir, href) {
     var type = href.match(/\.([a-zA-Z]{2,4})$/);        // Directories and Markdown files prefixed with '#';
-    var prefix = (!type || type.length < 2 || type[1] === "md") ? "#action=view&path=" : "../";        // all others with '../'
-
     if (this.isRelativeURL(href)) {                    // protocol not specified, relative URL
-        href = prefix + this.getPathArray(dir + "/" + href).join("/");
+        href = this.getPathArray(dir + "/" + href).join("/");
+        if (!type || type.length < 2 || type[1] === "md") {
+            href = "#action=view&path=" + href;
+        }
     }
     return href;
 });
 
 
-module.exports.define("highlightLink", function (selector, path_array) {
+module.exports.define("highlightLink", function (element, path_array) {
     var match_path = "#action=view&path=";
     if (this.isFile(path_array)) {
         match_path += this.getFullPath(path_array);
     } else {
         match_path += this.getFullDirectory(path_array);
     }
-    jQuery(selector).find("a").each(function () {
+    element.find("a").each(function () {
         var href = jQuery(this).attr("href") || jQuery(this).attr("xlink:href");
         if (href === match_path) {
             jQuery(this).css("font-weight", "bold");
@@ -389,9 +407,9 @@ module.exports.define("highlightSearchMatch", function (selector, search_match) 
 });
 
 
-module.exports.define("applyViz", function (elmt, dir) {
+module.exports.define("applyViz", function (element, dir) {
 	var that = this;
-    var text = jQuery(elmt).text().replace("{", "{ " +
+    var text = element.text().replace("{", "{ " +
         " graph [ penwidth=0.1, bgcolor=transparent ]; " +
         " node  [ fontname=Arial, fontsize=9, shape=box, style=rounded ]; " +
         " edge  [ fontname=Arial, fontsize=9 ]; ");
@@ -405,34 +423,22 @@ module.exports.define("applyViz", function (elmt, dir) {
         return ("URL=\"" + that.convertPath(dir, match) + "\"");
     });
     this.debug("applyViz(): " + text);
-    jQuery(elmt).html(viz(text, "svg"));
+    element.html(viz(text, "svg"));
 });
 
 
-module.exports.define("setCurrLocation", function (selector, path_array, content) {
+module.exports.define("setCurrLocation", function (element, path_array, content) {
     var i;
-    var elmt = jQuery(selector);
     var title = this.getDocTitle(path_array, content);
     var concat_path = "";
-    var page = path_array[path_array.length - 1];
 
-    elmt.empty();
-    for (i = 0; i < path_array.length - 1; i += 1) {
+    element.empty();
+    this.addBreadcrumb(element, "#action=view", "home", (path_array.length === 0));
+    for (i = 0; i < path_array.length; i += 1) {
         concat_path += path_array[i] + "/";
-        this.addBreadcrumb(elmt, "#action=view&path=" + concat_path, path_array[i]);
-        // elmt = this.addUL(elmt);
-        // elmt = this.addBulletLink(elmt, "#" + concat_path + "README.md", path_array[i]);
+        this.addBreadcrumb(element, "#action=view&path=" + concat_path, path_array[i], (i === path_array.length - 1));
     }
-    elmt.append("<li class='active'>" + page + "</li>");
-    // this.addBreadcrumb(elmt, "#" + concat_path + page, page, true);
-    // elmt = this.addUL(elmt);
-    // elmt = this.addBulletLink(elmt, "#" + concat_path + page, page);
-
     jQuery(document).attr("title", title);
-//                document.title = page;
-
-    // jQuery("#menu_container .active").removeClass("active");
-    // jQuery("#menu_container").find("#" + path_array[0]).addClass("active");
 });
 
 
@@ -448,7 +454,7 @@ module.exports.define("addBulletLink", function (elmt, url, label) {
 
 module.exports.define("addBreadcrumb", function (elmt, url, label, final_part) {
     if (final_part) {
-        elmt.append("<li class='active'><a href='" + url + "'>" + label + "</a></li>");
+        elmt.append("<li class='active'>" + label + "</li>");
     } else {
         elmt.append("<li><a href='" + url + "'>" + label + "</a> <span class='divider'>/</span></li>");
     }
@@ -589,7 +595,7 @@ module.exports.define("replicateRepoIfModified", function () {
 module.exports.define("replicateRepo", function (commit_hash) {
     var that = this;
     this.debug("starting replicateRepo()");
-    jQuery(this.selectors.main_pane).html("Repo has changed, downloading...");
+    this.elements.main_pane.html("Repo has changed, downloading...");
     this.replicating = true;
     this.setCachingButton();
     this.repl_docs  = {};
@@ -712,15 +718,15 @@ module.exports.define("nextDocToSave", function () {
 });
 
 
-module.exports.define("searchSetup", function (selector) {
-    // var that = this;
-    this.debug("searchSetup(): " + selector);
+module.exports.define("searchSetup", function () {
+    var that = this;
+    this.debug("searchSetup()");
     function runSearch(/*event*/) {
-        var search_str = jQuery(selector).val();
+        var search_str = that.elements.search_box.val();
         if (!search_str) {
             return;
         }
-        jQuery(selector).val("");
+        that.elements.search_box.val("");
         if (search_str.length < 4) {
             alert("search string should be at least 4 characters");
             return;
@@ -728,8 +734,8 @@ module.exports.define("searchSetup", function (selector) {
         window.location.href = "#action=search&term=" + encodeURIComponent(search_str);
         // that.runSearch(search_str);
     }
-    jQuery(selector).on("blur"  , runSearch);
-    jQuery(selector).on("keyup" , function (event) {
+    this.elements.search_box.on("blur"  , runSearch);
+    this.elements.search_box.on("keyup" , function (event) {
         if (event.keyCode === 13) {
             runSearch();
         }
@@ -760,16 +766,15 @@ module.exports.define("runSearch", function (search_str) {
 
 
 module.exports.define("clearSearch", function (search_str) {
-    jQuery(this.selectors.main_pane).empty();
-    jQuery(this.selectors.main_pane).append("<h1>Matches for '" + search_str + "'</h1>");
-    jQuery(this.selectors.left_pane).addClass("hide");
-    jQuery(this.selectors.curr_location).addClass("hide");
+    this.elements.main_pane.empty();
+    this.elements.main_pane.append("<h1>Matches for '" + search_str + "'</h1>");
+    this.elements.left_pane.addClass("hide");
+    this.elements.curr_location.addClass("hide");
 });
 
 
 module.exports.define("displaySearchResults", function (docs, search_str) {
     var that = this;
-    var root_selector = jQuery(this.selectors.main_pane);
     var regex1 = new RegExp(".*" + search_str + ".*", "gi");            // danger? for the mo, treat query as a regex expr...;
     var regex2 = new RegExp(search_str, "gi");
     var added_doc_nodes = {};
@@ -788,9 +793,9 @@ module.exports.define("displaySearchResults", function (docs, search_str) {
 
     function addDoc(doc) {
         var new_doc_node;
-        root_selector.append("<div class='match_result'><i class='icon-file' /> <b>" +
+        that.elements.main_pane.append("<div class='match_result'><i class='icon-file' /> <b>" +
             highlightText(doc.payload.title) + "</b><span>" + doc.uuid + "</span><ul/></div>");
-        new_doc_node = root_selector.children("div.match_result").last();
+        new_doc_node = that.elements.main_pane.children("div.match_result").last();
         added_doc_nodes[doc.uuid] = new_doc_node;
         count_doc += 1;
         return new_doc_node;
@@ -821,7 +826,8 @@ module.exports.define("displaySearchResults", function (docs, search_str) {
             docs[i].payload.content.replace(regex1, addMatch);
         }
     }
-    root_selector.append("<div><b>" + count_match + "</b> matches across <b>" + count_doc + "</b> files");
+    this.elements.main_pane.append("<div><b>" + count_match + "</b> matches across <b>" +
+        count_doc + "</b> files");
     this.debug("displaySearchResults() finished");
 });
 
@@ -835,21 +841,21 @@ module.exports.define("setCaching", function (caching) {
 module.exports.define("setCachingButton", function () {
     var text = "Caching";
     if (this.replicating) {
-        jQuery(this.selectors.caching).addClass("btn-info");
+        this.elements.caching.addClass("btn-info");
         text = "Refreshing Cache";
     } else {
-        jQuery(this.selectors.caching).removeClass("btn-info");
+        this.elements.caching.removeClass("btn-info");
         if (this.caching) {
             text += " ON";
         } else {
             text += " OFF";
         }
     }
-    jQuery(this.selectors.caching).text(text);
+    this.elements.caching.text(text);
     if (this.caching) {
-        jQuery(this.selectors.caching).addClass("active");
+        this.elements.caching.addClass("active");
     } else {
-        jQuery(this.selectors.caching).removeClass("active");
+        this.elements.caching.removeClass("active");
     }
 });
 
@@ -869,25 +875,25 @@ module.exports.define("clearCache", function () {
 });
 
 
-// jQuery(document).on("click", "#list_docs", function (/*event*/) {
-//     x.Reader.listRepoDocs();
-// });
-
 module.exports.define("listRepoDocs", function () {
     var that = this;
-    var elem = jQuery(this.selectors.main_pane);
+    var element;
     var found_docs = {};
 
-    elem.empty();
-    elem.append("<table class='table' id='repo_index'><thead><tr><th>Path / Title</th><th>Last Modified</th><th>Internal Links</th></tr></thead><tbody/></table>");
-    elem = elem.find("table > tbody");
+    this.elements.left_pane.empty();
+    this.elements.main_pane.empty();
+    this.elements.main_pane.append("<table class='table' id='repo_index'><thead><tr><th>Path / Title</th>"
+        // + "<th>Last Modified</th>"
+        + "<th>Internal Links</th></tr></thead><tbody/></table>");
+    element = this.elements.main_pane.find("table > tbody");
 
     function addDoc(doc) {
         var path_arr = that.getPathArray(doc.uuid);
         var path = that.getFullPath(path_arr);
         var html = "<tr><td><a href='#" + path + "' target='_blank'>" + path + "</a>";
         html += (doc.payload ? "<br/>" + doc.payload.title : "");
-        html += "</td><td>" + doc.last_upd + "</td><td>";
+        // html += "</td><td>" + doc.last_upd;
+        html += "</td><td>";
         if (doc.payload && doc.payload.links && doc.uuid.match(/\.md$/)) {
             if (that.isFile(path_arr)) {
                 path_arr.pop();
@@ -899,7 +905,7 @@ module.exports.define("listRepoDocs", function () {
             html += "</ul>";
         }
         html += "</td></tr>";
-        elem.append(html);
+        element.append(html);
         found_docs[path] = true;
     }
 
@@ -909,7 +915,7 @@ module.exports.define("listRepoDocs", function () {
         docs.forEach(function (doc) {
             addDoc(doc);
         });
-        elem.find("li.missing").each(function () {
+        element.find("li.missing").each(function () {
             var file_id = jQuery(this).text();
             if (found_docs[file_id] || !file_id.endsWith(".md")) {
                 jQuery(this).removeClass("missing");
