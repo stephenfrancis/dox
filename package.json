@@ -1,0 +1,26 @@
+{
+  "name": "doc_reader",
+  "version": "0.0.0",
+  "description": "Local Browse Functionality on a Git Repo containing Markdown",
+  "main": "index.js",
+  "scripts": {
+    "test": "nodeunit test.js",
+    "build": "browserify index.js > bundle.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:rullionsolutions/doc_reader"
+  },
+  "author": "stephen.d.francis@gmail.com",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "q": ">= 1.4.1",
+    "url": ">= 1.0.0",
+    "viz.js": ">= 1.4.1",
+    "marked": ">= 0.3.6",
+    "jquery": ">= 3.1.0",
+    "underscore": ">= 1.0.0",
+    "lapis-core": ">= 0.0.0",
+    "lapis-store": ">= 0.0.0"
+  }
+}

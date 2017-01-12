@@ -9,52 +9,7 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<link rel="stylesheet" type="text/css" href="/cdn/twitter-bootstrap-v2.3.2/css/bootstrap.min.css" media="screen" />
 		<link rel="stylesheet" type="text/css" href="/cdn/twitter-bootstrap-v2.3.2/css/bootstrap-responsive.min.css" />
-		<style>
-			h1	 { font-size: 18pt; }
-			h2	 { font-size: 16pt; }
-			h3	 { font-size: 14pt; }
-			h4	 { font-size: 12pt; }
-			body { font-size: 10pt; }
-			img	 { max-width: inherit; }		/* override TB setting and allow images to be their own size */
-
-			#repo_logo 		{ float: left; }
-			#search_box		{ margin: 10px }
-			#curr_location	{ margin: 10px; padding: 0; float: left; background-color: white; }
-			#left_pane 		{ padding: 20px; flex-basis: 40%; background-color: #f5f5f5; margin-right: 20px; border-radius: 0 0 10px 10px; }
-			#main_pane		{ padding: 20px; flex-basis: 60%; background-color: white; z-index: 10; }
-
-			#curr_location ul { list-style-type: none; margin-left: 10px;  }
-			ol 				{ padding-bottom: 5px; }
-			li > p 			{ margin: 0; }
-			li 				{ margin: 5px 0 5px 0; }
-			/* Viz Styling... */
-			.node			{ font-family: Arial; }
-
-			.flex_item		{ flex: 1 1 50%; overflow-x: hidden; }
-
-			@media (max-width: 767px) {
-				#main_pane		{ padding: 0px; }
-				nav.navbar-fixed-top	{ margin-bottom: 0; }
-				nav.navbar-fixed-top .navbar-inner	{ padding: 0; }
-			}
-
-			@media (max-width: 979px) {
-				.flex_item_desktop	{ flex: 0 0 0%; display: none; }
-			}
-
-			div.match_result { border: 1px solid #ccc; margin: 0 10px 10px 0; border-radius: 5px; padding: 10px; }
-			div.match_result:hover { background-color: #eee; cursor: pointer; }
-			div.match_result > span { margin-left: 40px; color: #ccc; float: right; }
-			div.match_result .highlight { background-color: yellow; }
-
-			.missing		{ color: red; font-weight: bold; }
-
-			@media print {
-				body { font-family: Arial; }
-			    nav { display: none; }
-			    ul#curr_location  { display: none; }
-			}
-		</style>
+		<link rel="stylesheet" type="text/css" href="reader.css" />
 	</head>
 
 	<body>
@@ -70,7 +25,7 @@
 				</ul>
 
 				<div class="btn-group pull-right" style="margin: 15px 10px">
-					<a id="caching" type="button" class="btn btn-mini active" data-toggle="button" title="get documents from local storage instead of the server">Caching</a>
+					<a id="caching" type="button" class="btn btn-mini active" title="get documents from local storage instead of the server">Caching</a>
 					<a id="list_docs" type="button" class="btn btn-mini" href="#action=index" title="list the cached documents in this repo, and highlight broken links">Index</a>
 				</div>
 			</div><!-- /.navbar-inner -->
@@ -80,7 +35,6 @@
 		</div>
 
 		<div id="container" style="display: flex; flex-direction: row">
-
 			<div id="left_pane" class="flex_item flex_item_desktop"><!-- -->
 				Loading...
 			</div>	<!-- #left_pane -->
@@ -90,24 +44,17 @@
 			</div>	<!-- #main_pane -->
 
 		</div>
-
-		<script type="text/javascript" src="/cdn/jquery-v1.11.3/jquery-1.11.3.min.js"> </script>
-		<script type="text/javascript" src="/cdn/twitter-bootstrap-v2.3.2/js/bootstrap.min.js"> </script>
-		<script type="text/javascript" src="/cdn/taylorhakes-promise-polyfill/Promise.min.js"> </script>
-		<script type="text/javascript" src="/cdn/medialize/URI.js"> </script>
-		<script type="text/javascript" src="marked.js"> </script>
-		<script type="text/javascript" src="viz.js"> </script>
-		<script type="text/javascript" src="Base.js"> </script>
-		<script type="text/javascript" src="Store.js"> </script>
-		<script type="text/javascript" src="Reader.js"> </script>
+		<script type="text/javascript" src="bundle.js"> </script>
 		<script type="text/javascript">
-			$(document).ready(function() {
-				x.Reader.searchSetup("#search_box > input");
-				x.Store.start()
-			    	.then(function () {
-						x.Reader.start();
-					});
-			});
+            window.controller.start({
+            	selectors: {
+	                left_pane: "#left_pane",
+	                main_pane: "#main_pane",
+	                search_box: "#search_box",
+	                curr_location: "#curr_location",
+	                caching: "#caching",
+	            }
+            });
 		</script>
 	</body>
 </html>

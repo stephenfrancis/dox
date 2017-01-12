@@ -1,0 +1,45 @@
+
+h1   { font-size: 18pt; }
+h2   { font-size: 16pt; }
+h3   { font-size: 14pt; }
+h4   { font-size: 12pt; }
+body { font-size: 10pt; }
+img  { max-width: inherit; }        /* override TB setting and allow images to be their own size */
+
+#repo_logo      { float: left; }
+#search_box     { margin: 10px }
+#curr_location  { margin: 10px; padding: 0; float: left; background-color: white; }
+#left_pane      { padding: 20px; flex-basis: 40%; background-color: #f5f5f5; margin-right: 20px; border-radius: 0 0 10px 10px; }
+#main_pane      { padding: 20px; flex-basis: 60%; background-color: white; z-index: 10; }
+
+#curr_location ul { list-style-type: none; margin-left: 10px;  }
+ol              { padding-bottom: 5px; }
+li > p          { margin: 0; }
+li              { margin: 5px 0 5px 0; }
+/* Viz Styling... */
+.node           { font-family: Arial; }
+
+.flex_item      { flex: 1 1 50%; overflow-x: hidden; }
+
+@media (max-width: 767px) {
+    #main_pane      { padding: 0px; }
+    nav.navbar-fixed-top    { margin-bottom: 0; }
+    nav.navbar-fixed-top .navbar-inner  { padding: 0; }
+}
+
+@media (max-width: 979px) {
+    .flex_item_desktop  { flex: 0 0 0%; display: none; }
+}
+
+div.match_result { border: 1px solid #ccc; margin: 0 10px 10px 0; border-radius: 5px; padding: 10px; }
+div.match_result:hover { background-color: #eee; cursor: pointer; }
+div.match_result > span { margin-left: 40px; color: #ccc; float: right; }
+div.match_result .highlight { background-color: yellow; }
+
+.missing        { color: red; font-weight: bold; }
+
+@media print {
+    body { font-family: Arial; }
+    nav { display: none; }
+    ul#curr_location  { display: none; }
+}
