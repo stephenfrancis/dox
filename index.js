@@ -26,7 +26,7 @@ module.exports = Core.Base.clone({
     parts: null,
     page: null,
     caching: true,
-    current_repo: url.parse(window.location.href).pathname.replace(/\//g, ""),
+    current_repo: window.location.pathname.match(/^\/(.*?)\//)[1],
     replicate: true,
 });
 
@@ -433,7 +433,7 @@ module.exports.define("setCurrLocation", function (element, path_array, content)
     var concat_path = "";
 
     element.empty();
-    this.addBreadcrumb(element, "#action=view", "home", (path_array.length === 0));
+    this.addBreadcrumb(element, "#action=view", this.current_repo, (path_array.length === 0));
     for (i = 0; i < path_array.length; i += 1) {
         concat_path += path_array[i] + "/";
         this.addBreadcrumb(element, "#action=view&path=" + concat_path, path_array[i], (i === path_array.length - 1));

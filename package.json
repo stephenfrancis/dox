@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "nodeunit test.js",
-    "build": "browserify index.js > bundle.js",
-    "watch": "watchify index.js -o bundle.js"
+    "build": "browserify index.js | uglifyjs --compress unused - > doc_reader.min.js",
+    "watch": "watchify index.js -o doc_reader.js"
   },
   "repository": {
     "type": "git",
