@@ -7,8 +7,8 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 		<meta name="author" content="Stephen Francis">
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-		<link rel="stylesheet" type="text/css" href="/cdn/twitter-bootstrap-v2.3.2/css/bootstrap.min.css" media="screen" />
-		<link rel="stylesheet" type="text/css" href="/cdn/twitter-bootstrap-v2.3.2/css/bootstrap-responsive.min.css" />
+		<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.2/css/bootstrap.min.css" media="screen" />
+		<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.2/css/bootstrap-responsive.min.css" />
 		<link rel="stylesheet" type="text/css" href="reader.css" />
 	</head>
 
@@ -44,9 +44,11 @@
 			</div>	<!-- #main_pane -->
 
 		</div>
-		<script type="text/javascript" src="bundle.js"> </script>
+		<script type="text/javascript" src="doc_reader.min.js"> </script>
 		<script type="text/javascript">
             window.controller.start({
+                store_version: 1,
+               	log_level: 2,
             	selectors: {
 	                left_pane: "#left_pane",
 	                main_pane: "#main_pane",
