@@ -16,11 +16,11 @@ Path Behaviour
 var uriFunction = URI,
     vizFunction = Viz,
     module = x.Base.clone({
-        id          : "Reader",
-        path         : null,
-        parts         : null,
-        page         : null,
-        caching        : true,
+        id: "Reader",
+        path: null,
+        parts: null,
+        page: null,
+        caching: true,
         current_repo: null,
         replicate   : true
     });
