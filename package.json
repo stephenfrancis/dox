@@ -15,13 +15,15 @@
   "author": "stephen.d.francis@gmail.com",
   "license": "Apache-2.0",
   "dependencies": {
-    "q": ">= 1.4.1",
-    "url": ">= 1.0.0",
-    "viz.js": ">= 1.4.1",
-    "marked": ">= 0.3.6",
+    "browserify": "^14.5.0",
     "jquery": ">= 3.1.0",
+    "lapis-core": "git@github.com:rullionsolutions/lapis-core.git",
+    "lapis-store": "git@github.com:rullionsolutions/lapis-store.git",
+    "marked": ">= 0.3.6",
+    "q": ">= 1.4.1",
+    "uglify": "^0.1.5",
     "underscore": ">= 1.0.0",
-    "lapis-core": ">= 0.0.0",
-    "lapis-store": ">= 0.0.0"
+    "url": ">= 1.0.0",
+    "viz.js": ">= 1.4.1"
   }
 }
