@@ -21,7 +21,7 @@
     "lapis-store": "git@github.com:rullionsolutions/lapis-store.git",
     "marked": ">= 0.3.6",
     "q": ">= 1.4.1",
-    "uglify": "^0.1.5",
+    "uglifyjs": "^2.4.11",
     "underscore": ">= 1.0.0",
     "url": ">= 1.0.0",
     "viz.js": ">= 1.4.1"

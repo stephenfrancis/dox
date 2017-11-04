@@ -1,3 +1,4 @@
+node_modules/**
 menu.html
 doc_reader.js
 doc_reader.min.js
