@@ -15,15 +15,14 @@
   "author": "stephen.d.francis@gmail.com",
   "license": "Apache-2.0",
   "dependencies": {
-    "browserify": "^14.5.0",
     "jquery": ">= 3.1.0",
-    "lapis-core": "git@github.com:rullionsolutions/lapis-core.git",
-    "lapis-store": "git@github.com:rullionsolutions/lapis-store.git",
+    "loglevel": "^1.6.0",
     "marked": ">= 0.3.6",
     "q": ">= 1.4.1",
-    "uglifyjs": "^2.4.11",
-    "underscore": ">= 1.0.0",
-    "url": ">= 1.0.0",
     "viz.js": ">= 1.4.1"
+  },
+  "devDependencies": {
+    "browserify": "^14.5.0",
+    "uglify-js": "^2.4.11"
   }
 }
