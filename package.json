@@ -1,6 +1,6 @@
 {
   "name": "doc_reader",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Local Browse Functionality on a Git Repo containing Markdown",
   "main": "index.js",
   "scripts": {

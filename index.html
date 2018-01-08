@@ -7,32 +7,28 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 		<meta name="author" content="Stephen Francis">
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-		<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.2/css/bootstrap.min.css" media="screen" />
-		<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.2/css/bootstrap-responsive.min.css" />
 		<link rel="stylesheet" type="text/css" href="reader.css" />
 	</head>
 
 	<body>
-		<nav class="navbar navbar-fixed-top">
-			<div class="navbar-inner">
-				<a id="repo_logo"><img/></a>
-    			<!-- Collect the nav links, forms, and other content for toggling -->
-				<form class="navbar-search pull-left" id="search_box">
-					<input type="text" placeholder="search" class="search-query" />
-				</form>
-
-				<ul id="curr_location" class="breadcrumb">
+		<nav class="navbar">
+			<div class="navbar-icon">
+				<a href="#"><img src="favicon-32x32.png" /></a>
+			</div>
+			<div class="navbar-search">
+				<input type="text" id="search_box" placeholder="search" />
+			</div>
+			<div class="navbar-breadcrumbs">
+				<ul id="curr_location">
 				</ul>
-
-				<div class="btn-group pull-right" style="margin: 15px 10px">
+			</div>
+			<div class="navbar-buttons">
+				<div  class="btn-group">
 					<a id="caching" type="button" class="btn btn-mini active" title="get documents from local storage instead of the server">Caching</a>
 					<a id="list_docs" type="button" class="btn btn-mini" href="#action=index" title="list the cached documents in this repo, and highlight broken links">Index</a>
 				</div>
-			</div><!-- /.navbar-inner -->
+			</div>
 		</nav><!-- /.navbar -->
-
-		<div class="hidden-phone hidden-tablet" style="height: 50px">
-		</div>
 
 		<div id="container" style="display: flex; flex-direction: row">
 			<div id="left_pane" class="flex_item flex_item_desktop"><!-- -->

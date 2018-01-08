@@ -5,7 +5,7 @@ const Viz = require("viz.js");
 const Q = require("q");
 const Marked = require("marked");
 const Jquery = require("jquery");
-const Lapis = require("lapis");
+const IndexedDB = require("lapis/IndexedDB.js");
 const Log = require("loglevel");
 
 /*
@@ -24,14 +24,11 @@ window.controller = module.exports;
 module.exports.start = function (selectors) {
   var that = this;
   this.selectors = selectors;
-  this.path = null;
-  this.parts = null;
-  this.page = null;
   this.caching = true;
   this.current_repo = window.location.pathname.match(/^\/(.*?)\//)[1];
-  this.replicate = true;
-  this.version = 1; // integer version sequence
-  this.database = new Lapis.Database(window.indexedDB, this.current_repo, this.version);
+  this.idb_version = 1; // integer version sequence
+  this.npm_version = "0.0.3"; // TODO - get from package.json
+  this.database = new IndexedDB(window.indexedDB, this.current_repo, this.idb_version);
   this.validateConfig();
   this.setupDocumentBindings();
   this.searchSetup();
@@ -116,7 +113,8 @@ module.exports.setupDocumentBindings = function () {
 
     // uri.fragment(doc_id);
     // window.open(uri.toString());
-    window.location.href = "#action=view&path=" + doc_id + "&search_match=" + encodeURIComponent(that.search_str);
+    window.location.href = "#action=view&path=" + doc_id
+      + "&search_match=" + encodeURIComponent(that.search_str);
   });
 
   Jquery(document).ready(function() {
@@ -127,13 +125,23 @@ module.exports.setupDocumentBindings = function () {
     that.caching = Jquery(this).hasClass("active");
     that.setCaching(!that.caching);
     that.hashChange();
-  //    x.Reader.clearCache();
   });
 
   Jquery(document).on("submit", function (event) {
     event.preventDefault();
     return false;
   });
+
+  // Jquery(document).on("blur", module.exports.selectors.search_box, function (/*event*/) {
+  //   that.runSearch(Jquery(this).find("input").val());
+  // });
+  //
+  // Jquery(document).on("keyup", module.exports.selectors.search_box, function (event) {
+  //   if (event.keyCode === 13) {
+  //     that.runSearch(Jquery(this).find("input").val());
+  //   }
+  // });
+
 };
 
 
@@ -204,33 +212,33 @@ module.exports.load = function (path_array, search_match) {
   this.elements.curr_location.removeClass("hide");
 
   return this.getDocFromLocalOrServer(path_array)
-  .then(function (content) {
-    that.convertAndDisplay(that.elements.main_pane, path_array, content);
-    that.setCurrLocation(that.elements.curr_location, path_array, content);
-    if (search_match) {
-      that.highlightSearchMatch(that.elements.main_pane, search_match);
-    }
-  })
-  .then(null, function (error) {
-    that.elements.main_pane.html(error + " :-(");
-  })
-  .then(function () {
-    if (parent_path) {
-      return that.getDocFromLocalOrServer(parent_path);
-    }
-  })
-  .then(function (content) {
-    if (content) {
-      that.convertAndDisplay(that.elements.left_pane, parent_path, content);
-      that.highlightLink(that.elements.left_pane, path_array);
-    } else {
-      that.elements.left_pane.empty();
-    }
-    return path_array;
-  })
-  .then(null, function (error) {
-    that.elements.left_pane.html(error + " :-(");
-  });
+    .then(function (content) {
+      that.convertAndDisplay(that.elements.main_pane, path_array, content);
+      that.setCurrLocation(that.elements.curr_location, path_array, content);
+      if (search_match) {
+        that.highlightSearchMatch(that.elements.main_pane, search_match);
+      }
+    })
+    .then(null, function (error) {
+      that.elements.main_pane.html(error + " :-(");
+    })
+    .then(function () {
+      if (parent_path) {
+        return that.getDocFromLocalOrServer(parent_path);
+      }
+    })
+    .then(function (content) {
+      if (content) {
+        that.convertAndDisplay(that.elements.left_pane, parent_path, content);
+        that.highlightLink(that.elements.left_pane, path_array);
+      } else {
+        that.elements.left_pane.empty();
+      }
+      return path_array;
+    })
+    .then(null, function (error) {
+      that.elements.left_pane.html(error + " :-(");
+    });
 };
 
 
@@ -448,16 +456,20 @@ module.exports.getDocFromLocalOrServer = function (path_array) {
 module.exports.getDocFromLocal = function (path_array) {
   var path = this.getFullPath(path_array);
   return this.store.get(path)
-  .then(function (doc_obj) {
-    return doc_obj.payload.content;
-  });
+    .then(function (doc_obj) {
+      return doc_obj.payload.content;
+    });
 };
 
 
 // take path_array and return a Promise
 module.exports.getDocFromServer = function (path_array) {
   var path = this.getFullPath(path_array);
-  return this.getFileFromServer({ url: path, type: "GET", cache: false });
+  return this.getFileFromServer({
+    url: path,
+    type: "GET",
+    cache: false,
+  });
 };
 
 
@@ -467,7 +479,7 @@ module.exports.getFileFromServer = function (options) {
     options.success = function (content) {
       resolve(content);
     };
-    options.error   = function (xml_http_request, text_status) {
+    options.error = function (xml_http_request, text_status) {
       reject("[" + xml_http_request.status + "] " + xml_http_request.statusText + " " + text_status);
     };
     Jquery.ajax(options);
@@ -485,7 +497,7 @@ module.exports.getDocTitle = function (path_array, content) {
 
 
 module.exports.getDocLinks = function (content) {
-  var regex1 = /\]\((.*?)\)/g;         // replace(regex, callback) doesn't seem to support capturing groups
+  var regex1 = /\]\((.*?)\)/g; // replace(regex, callback) doesn't seem to support capturing groups
   var regex2 = /URL\s*=\s*\"([\w\.\/]+)\"/g;
   var links = [];
   var that = this;
@@ -501,7 +513,7 @@ module.exports.getDocLinks = function (content) {
   matches = content.match(regex1);
   for (i = 0; matches && i < matches.length; i += 1) {
     addLink(regex1.exec(matches[i]));
-    regex1.exec("");        // every other call to regex.exec() returns null for some reason...!
+    regex1.exec(""); // every other call to regex.exec() returns null for some reason...!
   }
   matches = content.match(regex2);
   for (i = 0; matches && i < matches.length; i += 1) {
@@ -518,45 +530,53 @@ module.exports.replicateRepoIfModified = function () {
   var old_commit_hash;
 
   Log.debug("starting replicateRepoIfModified()");
-  return this.getFileFromServer({ url: ".git/HEAD", type: "GET", cache: false })
-  .then(function (content) {
-    var ref;
-    if (content) {
-      ref = content.match(/ref:\ (.*)/);
-    }
-    if (!ref && content) {
-      new_commit_hash = content.trim();
-      return;
-    }
-    if (!ref || ref.length < 2 || !ref[1]) {
-      that.throwError("No ref found: " + content);
-    }
-    return that.getFileFromServer({ url: ".git/" + ref[1], type: "GET", cache: false });
+  return this.getFileFromServer({
+    url: ".git/HEAD",
+    type: "GET",
+    cache: false,
   })
-  .then(function (content) {
-    if (content) {
-      new_commit_hash = content.replace(/\s+/g, "");
-    }
-    Log.debug("replicateRepoIfModified() new_commit_hash: " + new_commit_hash);
-    return that.store.get("README.md");
-  })
-  .then(null, function (error) {
-    Log.error("Error reported: " + error);
-  })
-  .then(function (doc_obj) {
-    if (doc_obj) {
-      Log.debug("replicateRepoIfModified() old_commit_hash: " + doc_obj.commit_hash);
-      old_commit_hash = doc_obj.commit_hash;
-    } else {
-      Log.warn("No README.md doc found in store");
-    }
-    if (new_commit_hash !== old_commit_hash) {
-      that.new_commit_hash = new_commit_hash;
-      // that.replicateRepo(new_commit_hash);            // do in parallel, so promise is NOT returned
-      return true;
-    }
-    return false;
-  });
+    .then(function (content) {
+      var ref;
+      if (content) {
+        ref = content.match(/ref:\ (.*)/);
+      }
+      if (!ref && content) {
+        new_commit_hash = content.trim();
+        return;
+      }
+      if (!ref || ref.length < 2 || !ref[1]) {
+        that.throwError("No ref found: " + content);
+      }
+      return that.getFileFromServer({
+        url: ".git/" + ref[1],
+        type: "GET",
+        cache: false,
+      });
+    })
+    .then(function (content) {
+      if (content) {
+        new_commit_hash = content.replace(/\s+/g, "");
+      }
+      Log.debug("replicateRepoIfModified() new_commit_hash: " + new_commit_hash);
+      return that.store.get("README.md");
+    })
+    .then(null, function (error) {
+      Log.error("Error reported: " + error);
+    })
+    .then(function (doc_obj) {
+      if (doc_obj) {
+        Log.debug("replicateRepoIfModified() old_commit_hash: " + doc_obj.commit_hash);
+        old_commit_hash = doc_obj.commit_hash;
+      } else {
+        Log.warn("No README.md doc found in store");
+      }
+      if (new_commit_hash !== old_commit_hash) {
+        that.new_commit_hash = new_commit_hash;
+        // that.replicateRepo(new_commit_hash);            // do in parallel, so promise is NOT returned
+        return true;
+      }
+      return false;
+    });
 };
 
 
@@ -575,7 +595,7 @@ module.exports.replicateRepo = function (commit_hash) {
   return this.getNextQueueDocFromServerAndProcess()
     .then(function () {
       that.replicating = false;
-      that.caching     = true;
+      that.caching = true;
       that.setCachingButton();
       Log.debug("finished replicateRepo()");
     })
@@ -595,17 +615,17 @@ module.exports.getNextQueueDocFromServerAndProcess = function () {
     Log.info("getNextQueueDocFromServerAndProcess() getting: " + path_array);
     this.replication_count += 1;
     return this.getDocFromServer(path_array)
-    .then(function (content) {
-      // TODO need to check that file is markdown, or skip
-      // Log.info("getDocFromServerAndProcess() storing doc: " + path);
-      that.processRetrievedDoc(path_array, content);
-    })
-    .then(null, function (error) {
-      Log.error("getNextQueueDocFromServerAndProcess(): " + error);
-    })
-    .then(function () {
-      return that.getNextQueueDocFromServerAndProcess();
-    });
+      .then(function (content) {
+        // TODO need to check that file is markdown, or skip
+        // Log.info("getDocFromServerAndProcess() storing doc: " + path);
+        that.processRetrievedDoc(path_array, content);
+      })
+      .then(null, function (error) {
+        Log.error("getNextQueueDocFromServerAndProcess(): " + error);
+      })
+      .then(function () {
+        return that.getNextQueueDocFromServerAndProcess();
+      });
   }
   return that.nextDocToSave();
 };
@@ -635,9 +655,9 @@ module.exports.processRetrievedDoc = function (path_array, content) {
 
   doc = this.getOrAddReplDoc(path);
   doc.payload = {
-    title   : title,
-    links   : links,
-    content : content
+    title: title,
+    links: links,
+    content: content
   };
 };
 
@@ -694,11 +714,11 @@ module.exports.searchSetup = function () {
     if (!search_str) {
       return;
     }
-    that.elements.search_box.val("");
     if (search_str.length < 4) {
       alert("search string should be at least 4 characters");
       return;
     }
+    that.elements.search_box.val("");
     window.location.href = "#action=search&term=" + encodeURIComponent(search_str);
     // that.runSearch(search_str);
   }
@@ -738,6 +758,7 @@ module.exports.clearSearch = function (search_str) {
   this.elements.main_pane.append("<h1>Matches for '" + search_str + "'</h1>");
   this.elements.left_pane.addClass("hide");
   this.elements.curr_location.addClass("hide");
+  this.elements.search_box.find("input").val("");
 };
 
 
@@ -753,6 +774,9 @@ module.exports.displaySearchResults = function (docs, search_str) {
   Log.debug("displaySearchResults() starting to match docs: " + docs.length);
 
   function highlightText(str) {
+    if (!str) {
+      return "";
+    }
     return str.replace(regex2, function (match_str) {
       count_match +=1;
       return "<span class='highlight'>" + match_str + "</span>";
@@ -850,6 +874,7 @@ module.exports.listRepoDocs = function () {
 
   this.elements.left_pane.empty();
   this.elements.main_pane.empty();
+  this.elements.main_pane.append("<p>Dox version <b>v" + this.npm_version + "</b></p>");
   this.elements.main_pane.append("<table class='table' id='repo_index'><thead><tr><th>Path / Title</th>"
     // + "<th>Last Modified</th>"
     + "<th>Internal Links</th></tr></thead><tbody/></table>");
@@ -868,7 +893,8 @@ module.exports.listRepoDocs = function () {
       }
       html += "<ul>";
       doc.payload.links.forEach(function (link) {
-        html += "<li class='missing'>" + that.getFullPath(that.normalizePathArray(path_arr, link.split("/"))) + "</li>";
+        html += "<li class='missing'>"
+          + that.getFullPath(that.normalizePathArray(path_arr, link.split("/"))) + "</li>";
       });
       html += "</ul>";
     }

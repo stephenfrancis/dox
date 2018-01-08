@@ -4,16 +4,17 @@ h2   { font-size: 16pt; }
 h3   { font-size: 14pt; }
 h4   { font-size: 12pt; }
 body { font-size: 10pt; }
-img  { max-width: inherit; }        /* override TB setting and allow images to be their own size */
 
-#repo_logo      { float: left; }
-#search_box    { margin: 10px }
-#search_box input  { margin: 0; }
-#curr_location  { margin: 10px; padding: 0; float: left; background-color: white; }
+
+a:hover { color: #002147; text-decoration: underline; }
+a { color: #014493; text-decoration: none; }
+h1, h2, h3 { line-height: 40px; }
+h1, h2, h3, h4, h5, h6 { margin: 10px 0; font-family: inherit; font-weight: bold; color: inherit; }
+
+
 #left_pane      { padding: 20px; flex-basis: 40%; background-color: #f5f5f5; margin-right: 20px; border-radius: 0 0 10px 10px; }
 #main_pane      { padding: 20px; flex-basis: 60%; background-color: white; z-index: 10; }
 
-#curr_location ul { list-style-type: none; margin-left: 10px;  }
 ol              { padding-bottom: 5px; }
 li > p          { margin: 0; }
 li              { margin: 5px 0 5px 0; }
@@ -22,11 +23,6 @@ li              { margin: 5px 0 5px 0; }
 
 .flex_item      { flex: 1 1 50%; overflow-x: hidden; }
 
-@media (max-width: 767px) {
-    #main_pane      { padding: 0px; }
-    nav.navbar-fixed-top    { margin-bottom: 0; }
-    nav.navbar-fixed-top .navbar-inner  { padding: 0; }
-}
 
 @media (max-width: 979px) {
     .flex_item_desktop  { flex: 0 0 0%; display: none; }
@@ -44,3 +40,67 @@ div.match_result .highlight { background-color: yellow; }
     nav { display: none; }
     ul#curr_location  { display: none; }
 }
+
+
+/* From Bootstrap... */
+
+body {
+    margin: 0;
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 10pt;
+    line-height: 20px;
+    color: #535e68;
+    background-color: #ffffff;
+}
+
+
+/* Navbar Layout */
+
+.navbar { position: static; top: 0; left: 0; right: 0; height: 50px;
+    border-bottom: 1px solid #ddd; background-color: #f5f5f5; }
+.navbar > div { position: absolute; display: inline-block; vertical-align: top; top: 0;
+    margin: 0; }
+.navbar-icon { left: 0; padding: 10px 5px; }
+.navbar-search { left: 40px; padding: 10px 5px; }
+.navbar-search input  { margin: 0; padding: 4px 14px; font-size: 13px; font-weight: normal; line-height: 1;
+    border-radius: 15px; border: 1px solid #e6e6e6; display: inline-block; height: 20px; color: #555555;
+    vertical-align: middle; width: 90px; }
+.navbar-search input:focus { border-color: rgba(82, 168, 236, 0.8); outline: 0;
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(82,168,236,.6); }
+
+.navbar-breadcrumbs { left: 175px; padding: 15px 5px; }
+#curr_location { padding: 0; list-style-type: none; margin: 0; white-space: nowrap; }
+#curr_location li { display: inline; padding: 0 5px 0 0; }
+
+.navbar-buttons { right: 0; padding: 14px 5px; background-color: #f5f5f5; }
+.btn-group { font-size: 0; vertical-align: middle; white-space: nowrap; }
+.navbar .btn-group .btn { margin-top: 0; }
+.btn-group > .btn.active { z-index: 2; }
+.btn-group > .btn:first-child { margin-left: 0; border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+.btn-group > .btn:last-child { border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+.btn-group > .btn-mini { font-size: 7.5pt; }
+.btn-group > .btn { position: relative; border-radius: 0; background-color: #fff; }
+.btn-group>.btn+.btn { margin-left: -1px; }
+.btn.active { background-image: none; outline: 0; color: #333333; background-color: #e6e6e6;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.05); }
+.btn-mini { padding: 0 6px; }
+.btn:hover { color: #333333; text-decoration: none; background-position: 0 -15px; background-color: #e6e6e6; }
+.btn { display: inline-block; margin-bottom: 0; line-height: 20px; text-align: center; vertical-align: middle;
+    cursor: pointer; text-shadow: 0 1px 1px rgba(255, 255, 255, 0.75); background-repeat: repeat-x;
+    border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25); border: 1px solid #cccccc;
+    border-bottom-color: #b3b3b3; }
+
+/*
+@media (max-width: 979px) {
+    body {
+        padding-top: 0;
+    }
+}
+
+@media (max-width: 767px) {
+    body {
+        padding-right: 20px;
+        padding-left: 20px;
+    }
+}
+*/
