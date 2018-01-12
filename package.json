@@ -18,6 +18,7 @@
   "dependencies": {
     "finalhandler": "^1.1.0",
     "jquery": ">= 3.1.0",
+    "lapis": "https://github.com/stephenfrancis/lapis.git",
     "loglevel": "^1.6.0",
     "marked": ">= 0.3.6",
     "q": ">= 1.4.1",
