@@ -4,8 +4,9 @@
   "description": "Local Browse Functionality on a Git Repo containing Markdown",
   "main": "index.js",
   "scripts": {
-    "test": "nodeunit test.js",
     "build": "browserify index.js | uglifyjs --compress unused - > doc_reader.min.js",
+    "start": "node webserver.js",
+    "test": "nodeunit test.js",
     "watch": "watchify index.js -o doc_reader.js"
   },
   "repository": {
@@ -15,10 +16,12 @@
   "author": "stephen.d.francis@gmail.com",
   "license": "Apache-2.0",
   "dependencies": {
+    "finalhandler": "^1.1.0",
     "jquery": ">= 3.1.0",
     "loglevel": "^1.6.0",
     "marked": ">= 0.3.6",
     "q": ">= 1.4.1",
+    "serve-static": "^1.13.1",
     "viz.js": ">= 1.4.1"
   },
   "devDependencies": {
