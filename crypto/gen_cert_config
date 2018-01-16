@@ -1,0 +1,19 @@
+[ req ]
+default_bits           = 2048
+default_keyfile        = key.pem
+distinguished_name     = req_distinguished_name
+x509_extensions        = v3_ca
+prompt                 = no
+
+[ req_distinguished_name ]
+C    = GB
+ST   = West Sussex
+L    = East Grinstead
+O    = Lucidium
+OU   = Lucidium Infrastructure
+
+CN   = localhost
+emailAddress = stephen.d.francis@gmail.com
+
+[ v3_ca ]
+subjectAltName=DNS:localhost

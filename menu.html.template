@@ -1,2 +1,0 @@
-<!-- make a <li> element for each required menu item..., generally the id, path and label should be the same -->
-<li id='...'><a href='#...'>...</a></li>
