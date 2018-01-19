@@ -27,7 +27,7 @@ module.exports.start = function (selectors) {
   this.caching = true;
   this.current_repo = window.location.pathname.match(/^\/(.*?)\//)[1];
   this.idb_version = 1; // integer version sequence
-  this.npm_version = "0.0.3"; // TODO - get from package.json
+  this.npm_version = "0.1.0"; // TODO - get from package.json
   this.database = new IndexedDB(window.indexedDB, this.current_repo, this.idb_version);
   this.validateConfig();
   this.setupDocumentBindings();
