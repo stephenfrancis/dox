@@ -1,5 +1,6 @@
 
 import React from "react";
+import ReactDOM from "react-dom";
 import Header from "./Header.js";
 import Pane from "./Pane.js";
 
@@ -13,7 +14,8 @@ const npm_version = "0.1.0"; // TODO - get from package.json
 
 
 class App extends React.Component {
-  getInitialState() {
+  constructor(props) {
+    super(props);
     const that = this;
     const url = Url.parse(window.location.href);
     const current_repo = url.pathname.match(/^\/(.*?)\//)[1];
@@ -39,11 +41,13 @@ class App extends React.Component {
         });
       });
 
-    return {
+    this.state = {
       current_repo: current_repo,
       store: store,
       caching: true,
       ready: false,
+      action: "view",
+      path_array: [],
     }
   }
 
@@ -116,9 +120,36 @@ class App extends React.Component {
   }
 
 
+  getFullPath(path_array, alt_filename) {
+    var out = path_array.join("/");
+    if (alt_filename) {
+      out += (out ? "/" : "") + alt_filename;
+    }
+    if (!this.isFile(path_array, alt_filename)) {
+      out += (out ? "/" : "") + "README.md";
+    }
+    return out;
+  }
+
+
+  isFile(path_array, alt_filename) {
+    var regex = /\.[a-zA-Z]{2,4}$/;
+    if (alt_filename) {
+      return !!alt_filename.match(regex);
+    }
+    if (path_array.length < 1) {
+      return false;
+    }
+    return !!(path_array[path_array.length - 1].match(regex));        // has a 2-4 char extension
+  }
+
+
   render() {
+    var content;
     if (!this.state.ready) {
-      content = <p>Loading...</p>;
+      content = (
+        <p>Loading...</p>
+      );
     } else if (this.state.action === "view") {
       content = this.renderView();
     } else if (this.state.action === "search") {
@@ -126,7 +157,9 @@ class App extends React.Component {
     } else if (this.state.action === "index") {
       content = this.renderIndex();
     } else {
-      content = <p>Invalid action!</p>;
+      content = (
+        <p>Invalid action!</p>
+      );
     }
     return (
       <div>
@@ -139,9 +172,9 @@ class App extends React.Component {
   renderView() {
     var panes = [];
     if (this.state.parent_path_array) {
-      panes.push(<Pane id="left" store={this.state.store} path_array={this.state.parent_path_array} />);
+      panes.push(<Pane id="left" key="left" store={this.state.store} path={this.getFullPath(this.state.parent_path_array)} />);
     }
-    panes.push(<Pane id="main" store={this.state.store} path_array={this.state.path_array} />);
+    panes.push(<Pane id="left" key="main" store={this.state.store} path={this.getFullPath(this.state.path_array)} />);
     return (
       <div id="container" style={{ display: "flex", flexDirection: "row" }}>
         {panes}

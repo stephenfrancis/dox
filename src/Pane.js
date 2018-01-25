@@ -1,12 +1,15 @@
 
 import React from "react";
 
+const Log = require("loglevel").getLogger("dox.Pane");
 
-class Pane extends React.Component {
-  getInitialState() {
+
+export default class Pane extends React.Component {
+  constructor(props) {
+    super(props);
     const that = this;
-    if (this.props.path_array) {
-      this.props.store.getDoc(this.props.path_array.join("/"))
+    if (this.props.path) {
+      this.props.store.getDoc(this.props.path)
         .then(function (doc_obj) {
           that.setState({
             ready: true,
@@ -14,7 +17,7 @@ class Pane extends React.Component {
           });
         });
     }
-    return {
+    this.state = {
       ready: false,
     };
   }
@@ -27,15 +30,23 @@ class Pane extends React.Component {
     if (this.props.id === "left") {
         classes += " flex_item_desktop";
     }
-    if (!this.props.path_array) {
-      content = <p>No path_array for this pane</p>;
+    if (!this.props.path) {
+      content = (
+        <p>No path for this pane</p>
+      );
     } else if (!this.state.ready) {
-      content = <p>Loading...</p>;
+      content = (
+        <p>Loading...</p>
+      );
     } else {
-      content = <p dangerouslySetInnerHTML={{__html: this.state.content, }}></p>
+      content = (
+        <p dangerouslySetInnerHTML={{__html: this.state.content, }}></p>
+      );
     }
+    console.log("render() " + this.props.path + ", " + this.state.ready);
     return (
-        <div id={id} class={classes}>
+        <div id={id} className={classes}>
+          {content}
         </div>
     );
   }
