@@ -4,7 +4,7 @@ import ReactDOM from "react-dom";
 import Header from "./Header.js";
 import Pane from "./Pane.js";
 
-const Log = require("loglevel");
+const Log = require("loglevel").getLogger("dox.App");
 const Url = require("url");
 const IndexedDB = require("lapis/indexedDB.js");
 const IndexedDBAjaxStore = require("lapis/IndexedDBAjaxStore.js");
@@ -12,6 +12,8 @@ const IndexedDBAjaxStore = require("lapis/IndexedDBAjaxStore.js");
 const idb_version = 1; // integer version sequence
 const npm_version = "0.1.0"; // TODO - get from package.json
 
+
+require("loglevel").setLevel("debug");
 
 class App extends React.Component {
   constructor(props) {
@@ -36,9 +38,13 @@ class App extends React.Component {
 
     database.start()
       .then(function () {
+        Log.debug("database started setting App.state.ready = true");
         that.setState({
           ready: true, // state change to force a re-render...
         });
+      })
+      .then(null, function (err) {
+        Log.error("App.start error: " + err);
       });
 
     this.state = {

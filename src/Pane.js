@@ -2,6 +2,7 @@
 import React from "react";
 
 const Log = require("loglevel").getLogger("dox.Pane");
+const Marked = require("marked");
 
 
 export default class Pane extends React.Component {
@@ -11,10 +12,14 @@ export default class Pane extends React.Component {
     if (this.props.path) {
       this.props.store.getDoc(this.props.path)
         .then(function (doc_obj) {
+          Log.debug("doc_obj got, setting Pane.state.ready = true");
           that.setState({
             ready: true,
             content: doc_obj,
           });
+        })
+        .then(null, function (err) {
+          Log.error("Pane.getDoc error: " + err);
         });
     }
     this.state = {
@@ -40,9 +45,10 @@ export default class Pane extends React.Component {
       );
     } else {
       content = (
-        <p dangerouslySetInnerHTML={{__html: this.state.content, }}></p>
+        <p dangerouslySetInnerHTML={{__html: Marked(this.state.content, { smartypants: true }), }}></p>
       );
     }
+    Log.debug("render() " + this.props.path + ", " + this.state.ready);
     console.log("render() " + this.props.path + ", " + this.state.ready);
     return (
         <div id={id} className={classes}>
