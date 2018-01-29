@@ -29,7 +29,7 @@ module.exports.isMarkdownFile = function (path) {
 module.exports.getPathArray = function (path) {
   var path_arr;
   if (!path) {
-    path_arr = null;
+    path_arr = [];
   } else {
     path_arr = path.split("/");
     this.normalizePathArray(path_arr);

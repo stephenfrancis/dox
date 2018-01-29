@@ -9,30 +9,30 @@ export default class Header extends React.Component {
     var breadcrumbs = [];
     var concat_path = "";
     var i;
+    var j = 0;
 
-    if (this.props.path_array) {
-      breadcrumbs.push(this.makeBreadcrumb("#action=view",
-        this.props.current_repo, false));
+    function addBreadcrumb(url, label, final_part) {
+      const key = "bc_" + j;
+      j += 1;
+      if (final_part) {
+        breadcrumbs.push(<li key={key} className="active">{label}</li>);
+      } else {
+        breadcrumbs.push(<li key={key}><a href={url}>{label}</a> <span className="divider">/</span></li>);
+      }
+    }
+
+    if (this.props.path_array.length > 0) {
+      addBreadcrumb("#action=view", this.props.current_repo, false);
       for (i = 0; i < this.props.path_array.length; i += 1) {
         concat_path += this.props.path_array[i] + "/";
-        breadcrumbs.push(this.makeBreadcrumb("#action=view&path=" + concat_path,
-          this.props.path_array[i], (i === this.props.path_array.length - 1)));
+        addBreadcrumb("#action=view&path=" + concat_path, this.props.path_array[i],
+          (i === this.props.path_array.length - 1));
       }
     } else {
-      breadcrumbs.push(this.makeBreadcrumb("#action=view",
-        this.props.current_repo, true));
+      addBreadcrumb("#action=view", this.props.current_repo, true);
     }
 
     return breadcrumbs;
-  }
-
-
-  makeBreadcrumb(url, label, final_part) {
-    if (final_part) {
-      return (<li className="active">{label}</li>);
-    } else {
-      return (<li><a href={url}>{label}</a> <span className="divider">/</span></li>);
-    }
   }
 
 

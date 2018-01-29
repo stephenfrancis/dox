@@ -42,6 +42,7 @@ class App extends React.Component {
 
     this.state = {
       current_repo: current_repo,
+      path_array: [],
       store: store,
       caching: true,
       ready: false,
@@ -62,9 +63,7 @@ class App extends React.Component {
 
 
   processFragment(hash) {
-    var params = {
-      action: "view",
-    };
+    var params = {};
     var pairs;
 
     if (hash) {
@@ -88,16 +87,14 @@ class App extends React.Component {
   hashChange () {
     var hash = Url.parse(window.location.href).hash || "";
     var params = this.processFragment(hash);
-    if (params.path) {
+    params.action = params.action || "view";
+    if (params.action === "view") {
+      params.path = params.path || "";
       params.path_array = Utils.getPathArray(params.path);
       params.parent_path_array = Utils.getParentPathArray(params.path_array);
     }
     this.state.store.server_url = params.remote || this.local_url; // eslint-disable-line
-    Log.debug("hashChange arrays? "
-       + JSON.stringify(params.path_array) + ", "
-       + Array.isArray(params.path_array) + ", "
-       + JSON.stringify(params.parent_path_array) + ", "
-       + Array.isArray(params.parent_path_array));
+    Log.debug("App.hashChange params: " + JSON.stringify(params));
     this.setState(params);
   }
 
