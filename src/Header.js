@@ -1,19 +1,55 @@
 
 import React from "react";
+import PropTypes from "prop-types";
 
 
 export default class Header extends React.Component {
+
+  getBreadcrumbs() {
+    var breadcrumbs = [];
+    var concat_path = "";
+    var i;
+
+    if (this.props.path_array) {
+      breadcrumbs.push(this.makeBreadcrumb("#action=view",
+        this.props.current_repo, false));
+      for (i = 0; i < this.props.path_array.length; i += 1) {
+        concat_path += this.props.path_array[i] + "/";
+        breadcrumbs.push(this.makeBreadcrumb("#action=view&path=" + concat_path,
+          this.props.path_array[i], (i === this.props.path_array.length - 1)));
+      }
+    } else {
+      breadcrumbs.push(this.makeBreadcrumb("#action=view",
+        this.props.current_repo, true));
+    }
+
+    return breadcrumbs;
+  }
+
+
+  makeBreadcrumb(url, label, final_part) {
+    if (final_part) {
+      return (<li className="active">{label}</li>);
+    } else {
+      return (<li><a href={url}>{label}</a> <span className="divider">/</span></li>);
+    }
+  }
+
+
   render() {
+    var breadcrumbs = this.getBreadcrumbs();
+
     return (
       <nav className="navbar">
         <div className="navbar-icon">
-          <a href="#"><img src="favicon-32x32.png" /></a>
+          <a href="#"><img src="icon.png" /></a>
         </div>
         <div className="navbar-search">
           <input type="text" id="search_box" placeholder="search" />
         </div>
         <div className="navbar-breadcrumbs">
           <ul id="curr_location">
+            {breadcrumbs}
           </ul>
         </div>
         <div className="navbar-buttons">
@@ -28,3 +64,9 @@ export default class Header extends React.Component {
     );
   }
 }
+
+
+Header.propTypes = {
+  current_repo: PropTypes.string.isRequired,
+  path_array: PropTypes.array,
+};
