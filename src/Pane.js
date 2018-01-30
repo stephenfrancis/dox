@@ -1,6 +1,7 @@
 
 import React from "react";
 import PropTypes from "prop-types";
+import Location from "./Location.js";
 
 const Log = require("loglevel").getLogger("dox.Pane");
 const Utils = require("./Utils.js");
@@ -11,28 +12,31 @@ const IndexedDBAjaxStore = require("lapis/IndexedDBAjaxStore.js");
 export default class Pane extends React.Component {
   constructor(props) {
     super(props);
-    const that = this;
-    if (this.props.path_array) {
-      this.props.store.getDoc(Utils.getFileFromPathArray(this.props.path_array))
-        .then(function (doc_obj) {
-          Log.debug("doc_obj got, setting Pane.state.ready = true");
-          that.setState({
-            ready: true,
-            content: that.convertDocumentContent(doc_obj),
-          });
-        })
-        .then(null, function (err) {
-          Log.error("Pane.getDoc error: " + err);
-          that.setState({
-            ready: true,
-            content: "Pane.getDoc error: " + JSON.stringify(err),
-          });
-        });
-    }
     this.state = {
       ready: false,
       content: "Loading...",
     };
+    this.load(props);
+  }
+
+
+  load(props) {
+    const that = this;
+    props.store.getDoc(props.location.getRelativeURL())
+      .then(function (doc_obj) {
+        Log.debug("doc_obj got, setting Pane.state.ready = true");
+        that.setState({
+          ready: true,
+          content: that.convertDocumentContent(doc_obj),
+        });
+      })
+      .then(null, function (err) {
+        Log.error("Pane.getDoc error: " + err);
+        that.setState({
+          ready: true,
+          content: "Pane.getDoc error: " + JSON.stringify(err),
+        });
+      });
   }
 
 
@@ -56,7 +60,6 @@ export default class Pane extends React.Component {
 
 
   convertRelativePath(href) {
-    var path_array; // protocol not specified, relative URL, to a directory or markdown file
     var new_url;
     Log.debug("convertRelativePath(" + href + ") tests: "
       + Utils.isRelativePath(href) + ", "
@@ -65,14 +68,7 @@ export default class Pane extends React.Component {
 
     if (Utils.isRelativePath(href)
         && (!Utils.appearsToBeAFile(href) || Utils.isMarkdownFile(href))) {
-      path_array = this.props.path_array.slice(0);
-      path_array.splice(path_array.length, 0, Utils.getPathArray(href));
-      Utils.normalizePathArray(path_array);
-      new_url = "#action=view";
-      if (this.props.remote) {
-        new_url += "&remote=" + this.props.remote;
-      }
-      new_url += "&path=" + path_array.join("/")
+      new_url = this.props.location.getFullHash(href);
       Log.debug("convertRelativePath(" + href + "): " + new_url);
       return new_url;
     }
@@ -85,13 +81,24 @@ export default class Pane extends React.Component {
   }
 
 
+  componentWillReceiveProps(next_props) {
+    if (this.props.location.path !== next_props.location.path) {
+      this.setState({
+        ready: false,
+        content: "Loading...",
+      });
+      this.load(next_props);
+    }
+  }
+
+
   render() {
     var id = this.props.id + "_pane";
     var classes = "flex_item";
     if (this.props.id === "left") {
       classes += " flex_item_desktop";
     }
-    Log.debug("Pane.render() " + this.props.id + ", " + this.props.path_array + ", " + this.state.ready);
+    Log.debug("Pane.render() " + this.props.id + ", " + this.props.location.path + ", " + this.state.ready);
     return (
       <div id={id} className={classes}>
         <p dangerouslySetInnerHTML={{
@@ -105,7 +112,6 @@ export default class Pane extends React.Component {
 
 Pane.propTypes = {
   id: PropTypes.string.isRequired,
-  path_array: PropTypes.array.isRequired,
   store: PropTypes.instanceOf(IndexedDBAjaxStore).isRequired,
-  remote: PropTypes.string,
+  location: PropTypes.instanceOf(Location).isRequired,
 };

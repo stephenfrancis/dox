@@ -1,35 +1,39 @@
 
 import React from "react";
 import PropTypes from "prop-types";
+import Location from "./Location.js";
 
 
 export default class Header extends React.Component {
 
   getBreadcrumbs() {
+    const that = this;
     var breadcrumbs = [];
     var concat_path = "";
     var i;
     var j = 0;
 
-    function addBreadcrumb(url, label, final_part) {
+    function addBreadcrumb(label, final_part, url) {
       const key = "bc_" + j;
       j += 1;
       if (final_part) {
         breadcrumbs.push(<li key={key} className="active">{label}</li>);
       } else {
-        breadcrumbs.push(<li key={key}><a href={url}>{label}</a> <span className="divider">/</span></li>);
+        url = that.props.location.getFullHashFromRoot(url);
+        breadcrumbs.push(<li key={key}>
+          <a href={url}>{label}</a> <span className="divider">/</span></li>);
       }
     }
 
-    if (this.props.path_array.length > 0) {
-      addBreadcrumb("#action=view", this.props.current_repo, false);
-      for (i = 0; i < this.props.path_array.length; i += 1) {
-        concat_path += this.props.path_array[i] + "/";
-        addBreadcrumb("#action=view&path=" + concat_path, this.props.path_array[i],
-          (i === this.props.path_array.length - 1));
+    if (this.props.location.path_array.length > 0) {
+      addBreadcrumb(this.props.location.repo_name, false, "");
+      for (i = 0; i < this.props.location.path_array.length; i += 1) {
+        concat_path += this.props.location.path_array[i] + "/";
+        addBreadcrumb(this.props.location.path_array[i],
+          (i === this.props.location.path_array.length - 1), concat_path);
       }
     } else {
-      addBreadcrumb("#action=view", this.props.current_repo, true);
+      addBreadcrumb(this.props.location.repo_name, true);
     }
 
     return breadcrumbs;
@@ -67,6 +71,5 @@ export default class Header extends React.Component {
 
 
 Header.propTypes = {
-  current_repo: PropTypes.string.isRequired,
-  path_array: PropTypes.array,
+  location: PropTypes.instanceOf(Location).isRequired,
 };

@@ -4,10 +4,9 @@ import React from "react";
 import ReactDOM from "react-dom";
 import Header from "./Header.js";
 import Pane from "./Pane.js";
+import Location from "./Location.js";
 
 const Log = require("loglevel").getLogger("dox.App");
-const Url = require("url");
-const Utils = require("./Utils.js");
 const IndexedDB = require("lapis/IndexedDB.js");
 const IndexedDBAjaxStore = require("lapis/IndexedDBAjaxStore.js");
 
@@ -21,19 +20,6 @@ class App extends React.Component {
   constructor(props) {
     super(props);
     const that = this;
-    const url = Url.parse(window.location.href);
-    const current_repo = url.pathname.match(/^\/(.*?)\//)[1];
-    const database = new IndexedDB(window.indexedDB, current_repo, idb_version);
-    this.local_url = url.protocol + "//" + url.host + "/" + current_repo + "/";
-    const store = new IndexedDBAjaxStore(database, "dox",
-      { keyPath: "uuid", },
-      [
-        {
-          id: "by_title",
-          key_path: "payload.title",
-          additional: { unique: false, },
-        },
-      ], this.local_url);
 
     window.onhashchange = function () {
       Log.debug("window.onhashchange event");
@@ -41,61 +27,50 @@ class App extends React.Component {
     };
 
     this.state = {
-      current_repo: current_repo,
-      path_array: [],
-      store: store,
-      caching: true,
+      location: new Location(window.location.href),
       ready: false,
     }
-
-    database.start()
-      .then(function () {
-        Log.debug("database started setting App.state.ready = true");
-        that.hashChange();
-        that.setState({
-          ready: true, // state change to force a re-render...
-        });
-      })
-      .then(null, function (err) {
-        Log.error("App.start error: " + err);
-      });
-  }
-
-
-  processFragment(hash) {
-    var params = {};
-    var pairs;
-
-    if (hash) {
-      hash = hash.substr(1);
-    } else {
-      hash = "";
-    }
-    pairs = hash.split("&");
-    pairs.forEach(function (pair) {
-      var parts = pair.split("=");
-      if (parts.length > 1) {
-        params[parts[0]] = decodeURIComponent(parts[1]);
-      } else if (!params.path) { // interpret a param without '=' as a path
-        params.path = parts[0]; // if path not already specified
-      }
-    });
-    return params;
+    this.setupStore(this.state.location.base_url);
   }
 
 
   hashChange () {
-    var hash = Url.parse(window.location.href).hash || "";
-    var params = this.processFragment(hash);
-    params.action = params.action || "view";
-    if (params.action === "view") {
-      params.path = params.path || "";
-      params.path_array = Utils.getPathArray(params.path);
-      params.parent_path_array = Utils.getParentPathArray(params.path_array);
+    const location = new Location(window.location.href);
+    const ready = (this.state.location && (this.state.location.base_url === location.base_url));
+    this.setState({
+      location: location,
+      ready: ready,
+    });
+    if (!ready) {
+      this.setupStore(location.base_url);
     }
-    this.state.store.server_url = params.remote || this.local_url; // eslint-disable-line
-    Log.debug("App.hashChange params: " + JSON.stringify(params));
-    this.setState(params);
+  }
+
+
+  setupStore(base_url) {
+    const that = this;
+    const new_state = {};
+    const database = new IndexedDB(window.indexedDB, "dox", idb_version);
+
+    new_state.store = new IndexedDBAjaxStore(database, base_url,
+      { keyPath: "uuid", },
+      [
+        {
+          id: "by_title",
+          key_path: "payload.title",
+          additional: { unique: false, },
+        },
+      ], base_url);
+
+    database.start()
+      .then(function () {
+        Log.debug("database started setting App.state.ready = true");
+        new_state.ready = true;
+        that.setState(new_state);
+      })
+      .then(null, function (err) {
+        Log.error("App.start error: " + err);
+      });
   }
 
 
@@ -105,11 +80,11 @@ class App extends React.Component {
       content = (
         <p>Loading...</p>
       );
-    } else if (this.state.action === "view") {
+    } else if (this.state.location.action === "view") {
       content = this.renderView();
-    } else if (this.state.action === "search") {
+    } else if (this.state.location.action === "search") {
       content = this.renderSearch();
-    } else if (this.state.action === "index") {
+    } else if (this.state.location.action === "index") {
       content = this.renderIndex();
     } else {
       content = (
@@ -118,7 +93,7 @@ class App extends React.Component {
     }
     return (
       <div>
-        <Header current_repo={this.state.current_repo} path_array={this.state.path_array} />
+        <Header location={this.state.location} />
         {content}
       </div>
     );
@@ -126,12 +101,13 @@ class App extends React.Component {
 
   renderView() {
     var panes = [];
-    if (this.state.parent_path_array) {
-      panes.push(<Pane path_array={this.state.parent_path_array}
-        id="left" key="left" store={this.state.store} remote={this.state.remote} />);
+    var parent_location = this.state.location.getParentLocation();
+    if (parent_location) {
+      panes.push(<Pane location={parent_location}
+        id="left" key="left" store={this.state.store} />);
     }
-    panes.push(<Pane path_array={this.state.path_array}
-      id="main" key="main" store={this.state.store} remote={this.state.remote} />);
+    panes.push(<Pane location={this.state.location}
+      id="main" key="main" store={this.state.store} />);
 
     return (
       <div id="container" style={{ display: "flex", flexDirection: "row", }}>
