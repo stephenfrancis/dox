@@ -103,7 +103,7 @@ class App extends React.Component {
     var panes = [];
     var parent_location = this.state.location.getParentLocation();
     if (parent_location) {
-      panes.push(<Pane location={parent_location}
+      panes.push(<Pane location={parent_location} highlight_link={this.state.location}
         id="left" key="left" store={this.state.store} />);
     }
     panes.push(<Pane location={this.state.location}
