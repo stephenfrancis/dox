@@ -96,16 +96,18 @@ export default class Location {
   }
 
 
-  getFullHash(href) {
-    var path_array = this.path_array.slice(0);
-    path_array = path_array.concat(Utils.getPathArray(href));
+  getFullPathArrayFromRelative(relative_path) {
+    var path_array;
+    if (typeof relative_path_or_array === "string") {
+      relative_path = Utils.getPathArray(relative_path);
+    }
+    path_array = this.path_array.concat(relative_path);
     Utils.normalizePathArray(path_array);
-    Log.debug("Location.getFullHash(" + href + ") = " + path_array);
-    return this.getFullHashFromRoot(path_array);
+    return path_array;
   }
 
 
-  getFullHashFromRoot(path) {
+  getHashFromFullPathArray(path) {
     var new_url = "#repo_url=" + this.repo_url;
     if (this.branch) {
       new_url += "&branch=" + this.branch;
@@ -115,7 +117,7 @@ export default class Location {
       path = path.join("/");
     }
     new_url += "&path=" + path;
-    Log.debug("Location.getFullHashFromRoot(" + path + ") = " + new_url);
+    Log.trace("Location.getFullHashFromRoot(" + path + ") = " + new_url);
     return new_url;
   }
 }

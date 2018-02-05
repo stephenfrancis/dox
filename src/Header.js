@@ -9,17 +9,17 @@ export default class Header extends React.Component {
   getBreadcrumbs() {
     const that = this;
     var breadcrumbs = [];
-    var concat_path = "";
+    var concat_path = [];
     var i;
     var j = 0;
 
-    function addBreadcrumb(label, final_part, url) {
+    function addBreadcrumb(label, final_part) {
       const key = "bc_" + j;
+      const url = that.props.location.getHashFromFullPathArray(concat_path);
       j += 1;
       if (final_part) {
         breadcrumbs.push(<li key={key} className="active">{label}</li>);
       } else {
-        url = that.props.location.getFullHashFromRoot(url);
         breadcrumbs.push(<li key={key}>
           <a href={url}>{label}</a> <span className="divider">/</span></li>);
       }
@@ -28,9 +28,9 @@ export default class Header extends React.Component {
     if (this.props.location.path_array.length > 0) {
       addBreadcrumb(this.props.location.repo_name, false, "");
       for (i = 0; i < this.props.location.path_array.length; i += 1) {
-        concat_path += this.props.location.path_array[i] + "/";
+        concat_path.push(this.props.location.path_array[i]);
         addBreadcrumb(this.props.location.path_array[i],
-          (i === this.props.location.path_array.length - 1), concat_path);
+          (i === this.props.location.path_array.length - 1));
       }
     } else {
       addBreadcrumb(this.props.location.repo_name, true);

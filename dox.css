@@ -12,8 +12,12 @@ h1, h2, h3 { line-height: 40px; }
 h1, h2, h3, h4, h5, h6 { margin: 10px 0; font-family: inherit; font-weight: bold; color: inherit; }
 
 
-#left_pane      { padding: 20px; flex-basis: 30%; background-color: #f5f5f5; margin-right: 20px; border-radius: 0 0 10px 10px; }
-#main_pane      { padding: 20px; flex-basis: 70%; background-color: white; z-index: 10; }
+#left_pane      { padding: 20px; flex: 0; background-color: #f5f5f5; margin-right: 20px; border-radius: 0 0 10px 10px; }
+#main_pane      { padding: 20px; flex: 1; background-color: white; z-index: 10; }
+#left_pane.flex_width_0 { flex: 0 0 20px; }
+#left_pane.flex_width_0 > p { display: none; }
+#left_pane.flex_width_1 > p { max-width: 200px; }
+#left_pane.flex_width_2 { flex: 1; }
 
 ol              { padding-bottom: 5px; }
 li > p          { margin: 0; }
@@ -21,13 +25,14 @@ li              { margin: 5px 0 5px 0; }
 /* Viz Styling... */
 .node           { font-family: Arial; }
 
+/*
 .flex_item      { flex: 1 1 50%; overflow-x: hidden; }
 
 
 @media (max-width: 979px) {
     .flex_item_desktop  { flex: 0 0 0%; display: none; }
 }
-
+*/
 div.match_result { border: 1px solid #ccc; margin: 0 10px 10px 0; border-radius: 5px; padding: 10px; }
 div.match_result:hover { background-color: #eee; cursor: pointer; }
 div.match_result > span { margin-left: 40px; color: #ccc; float: right; }

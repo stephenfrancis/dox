@@ -16,6 +16,7 @@ export default class Pane extends React.Component {
     this.state = {
       ready: false,
       content: "Loading...",
+      width: 1, // 0 = minimized, 1 = normal, 2 = maximized
     };
     this.load(props);
   }
@@ -54,34 +55,39 @@ export default class Pane extends React.Component {
   // only INLINE markdown links are converted as relative URLs
   convertRelativePaths(markdown) {
     const that = this;
-    return markdown.replace(/\[(.*)\]\((.*)\)/g, function (match_all, match_1, match_2) {
-      var out = "[" + match_1 + "](" + that.convertRelativePath(match_2) + ")";
+    return markdown.replace(/\[(.*)\]\((.*?)\)/g, function (match_all, match_1, match_2) {
       Log.debug("convertRelativePaths() match: " + match_1 + ", " + match_2);
-      if (that.highlight_link) {
-        Log.debug("highlight_link path: " + that.highlight_link.path);
+      if (that.isURLNeedingConversion(match_2)) {
+        return that.convertURL(match_2, match_1);
       }
-      if (that.highlight_link && that.highlight_link.path === match_2) {
-        out = "**" + out + "**";
-      }
-      return out;
+      return "[" + match_1 + "](" + match_2 + ")";
     });
   }
 
 
-  convertRelativePath(href) {
-    var new_url;
+  isURLNeedingConversion(href) {
     Log.debug("convertRelativePath(" + href + ") tests: "
       + Utils.isRelativePath(href) + ", "
       + Utils.appearsToBeAFile(href) + ", "
       + Utils.isMarkdownFile(href));
 
-    if (Utils.isRelativePath(href)
-        && (!Utils.appearsToBeAFile(href) || Utils.isMarkdownFile(href))) {
-      new_url = this.props.location.getFullHash(href);
-      Log.debug("convertRelativePath(" + href + "): " + new_url);
-      return new_url;
+    return (Utils.isRelativePath(href)
+        && (!Utils.appearsToBeAFile(href) || Utils.isMarkdownFile(href)));
+  }
+
+
+  convertURL(href, label) {
+    var full_path = this.props.location.getFullPathArrayFromRelative(href);
+    var out = "[" + label + "](" + this.props.location.getHashFromFullPathArray(full_path) + ")";
+
+    Log.debug("convertURL(" + href + "): " + full_path);
+    if (this.props.highlight_link) {
+      Log.debug("highlight_link path: " + this.props.highlight_link.path);
     }
-    return href;
+    if (this.props.highlight_link && this.props.highlight_link.path === full_path.join("/")) {
+      out = "**" + out + "**";
+    }
+    return out;
   }
 
 
@@ -96,9 +102,8 @@ export default class Pane extends React.Component {
     var block_number = 0;
 
     this.digraph_block = [];
-    console.log("separateOutDigraphBlocks() lines: " + lines.length);
+    Log.trace("separateOutDigraphBlocks() lines: " + lines.length);
     for (let i = 0; i < lines.length; i += 1) {
-      // console.log("separateOutDigraphBlocks: " + lines[i]);
       if (!this.digraph_block[block_number]) {
         if (lines[i].indexOf("digraph") === 0) {
           this.digraph_block[block_number] = lines[i];
@@ -113,7 +118,7 @@ export default class Pane extends React.Component {
         }
       }
     }
-    console.log("separateOutDigraphBlocks() out: " + lines.length
+    Log.trace("separateOutDigraphBlocks() out: " + lines.length
       + ", blocks: " + block_number + ", out: " + out);
     return out;
   }
@@ -121,10 +126,10 @@ export default class Pane extends React.Component {
 
   applyViz(html) {
     const that = this;
-    console.log("applyViz() : " + that.digraph_block.length);
+    Log.trace("applyViz() : " + that.digraph_block.length);
     return html.replace(/¬¬DIGRAPH<(\d+)>¬¬/, function (match, match_1) {
       const block_number = parseInt(match_1);
-      console.log("block_number: " + block_number);
+      Log.trace("block_number: " + block_number);
       try {
         if (!that.digraph_block[block_number]) {
           throw new Error("no digraph block found for " + block_number);
@@ -137,11 +142,16 @@ export default class Pane extends React.Component {
   }
 
   componentWillReceiveProps(next_props) {
-    if (this.props.location.path !== next_props.location.path) {
-      this.setState({
-        ready: false,
-        content: "Loading...",
-      });
+    function isLocationChanged(old_locn, new_locn) {
+      return (old_locn && new_locn && old_locn.path !== new_locn.path);
+    }
+    if (isLocationChanged(this.props.location, next_props.location)
+      || isLocationChanged(this.props.highlight_link, next_props.highlight_link)) {
+      // doing this here causes a flicker in the pane...
+      // this.setState({
+      //   ready: false,
+      //   content: "Loading...",
+      // });
       this.load(next_props);
     }
   }
@@ -151,17 +161,64 @@ export default class Pane extends React.Component {
     var id = this.props.id + "_pane";
     var classes = "flex_item";
     if (this.props.id === "left") {
-      classes += " flex_item_desktop";
+      classes += " flex_width_" + this.state.width;
     }
     Log.debug("Pane.render() " + this.props.id + ", " + this.props.location.path + ", " + this.state.ready);
     return (
       <div id={id} className={classes}>
+        {(this.props.id === "left") && this.renderWidthControl()}
         <p dangerouslySetInnerHTML={{
           __html: this.state.content,
         }}></p>
       </div>
     );
   }
+
+  renderWidthControl() {
+    return (
+      <div style={{
+        float: "right",
+        fontSize: "24px",
+        cursor: "pointer",
+      }}>
+        {(this.state.width > 0) && this.renderWidthSmaller()}
+        {(this.state.width < 2) && this.renderWidthLarger()}
+      </div>
+    );
+  }
+
+
+  renderWidthSmaller() {
+    const that = this;
+    function handler() {
+      if (that.state.width < 1) {
+        return;
+      }
+      that.setState({
+        width: that.state.width - 1,
+      });
+    }
+    return (
+      <span onClick={handler}>⇚</span>
+    );
+  }
+
+
+  renderWidthLarger() {
+    const that = this;
+    function handler() {
+      if (that.state.width > 1) {
+        return;
+      }
+      that.setState({
+        width: that.state.width + 1,
+      });
+    }
+    return (
+      <span onClick={handler}>⇛</span>
+    );
+  }
+
 }
 
 
