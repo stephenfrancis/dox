@@ -3,6 +3,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import Header from "./Header.js";
+import AdjustablePane from "./AdjustablePane.js";
 import Pane from "./Pane.js";
 import Location from "./Location.js";
 
@@ -64,7 +65,7 @@ class App extends React.Component {
 
     database.start()
       .then(function () {
-        Log.debug("database started setting App.state.ready = true");
+        Log.debug("database started setting App.state.ready = true, base_url = " + base_url);
         new_state.ready = true;
         that.setState(new_state);
       })
@@ -78,17 +79,17 @@ class App extends React.Component {
     var content;
     if (!this.state.ready) {
       content = (
-        <p>Loading...</p>
+        <div className="message">Loading...</div>
       );
     } else if (this.state.location.action === "view") {
       content = this.renderView();
     } else if (this.state.location.action === "search") {
       content = this.renderSearch();
-    } else if (this.state.location.action === "index") {
-      content = this.renderIndex();
+    } else if (this.state.location.action === "info") {
+      content = this.renderInfo();
     } else {
       content = (
-        <p>Invalid action!</p>
+        <div className="message">Invalid action! {this.state.location.action}</div>
       );
     }
     return (
@@ -103,11 +104,25 @@ class App extends React.Component {
     var panes = [];
     var parent_location = this.state.location.getParentLocation();
     if (parent_location) {
-      panes.push(<Pane location={parent_location} highlight_link={this.state.location}
-        id="left" key="left" store={this.state.store} />);
+      panes.push(
+        <AdjustablePane key="left">
+          <Pane
+            id="left"
+            store={this.state.store}
+            location={parent_location}
+            highlight_link={this.state.location}
+          />
+        </AdjustablePane>
+      );
     }
-    panes.push(<Pane location={this.state.location}
-      id="main" key="main" store={this.state.store} />);
+    panes.push(
+      <div id="main_pane" key="main">
+        <Pane
+          store={this.state.store}
+          location={this.state.location}
+        />
+      </div>
+    );
 
     return (
       <div id="container" style={{ display: "flex", flexDirection: "row", }}>
@@ -121,7 +136,7 @@ class App extends React.Component {
   }
 
 
-  renderIndex() {
+  renderInfo() {
   }
 
 }

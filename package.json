@@ -7,7 +7,7 @@
     "build": "browserify src/App.js -t [ babelify --presets [ env react ] ] | uglifyjs --compress unused - > dox.min.js",
     "start": "node webserver.js",
     "test": "nodeunit test.js",
-    "watch": "watchify src/App.js -t [ babelify --presets [ env react ] ] -o dox.min.js"
+    "watch": "watchify src/App.js -t [ babelify --presets [ env react ] ] -o dox.min.js --debug --verbose"
   },
   "repository": {
     "type": "git",

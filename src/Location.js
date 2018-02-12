@@ -1,8 +1,20 @@
 
 const Log = require("loglevel").getLogger("dox.Location");
 const Url = require("url");
-const Utils = require("./Utils.js");
+// const Utils = require("./Utils.js");
+const Path = require("path");
 
+/**
+ * @typedef {Object} Location - Represents a folder or markdown document within a hosted Git repo
+ * @property {string} repo_url - full URL of the hosted Git repo, the last path element being the
+ *  repo name
+ * @property {string} repo_name - the derived name of the repo, from the last path element of
+ *  repo_url
+ * @property {string} path - directory path of the folder or markdown document within the repo
+ * @property {string} branch - (optional) the published branch, added to base_url if specified
+ * @property {string} base_url - used to derive the URL of documents in the repo, being the
+ *  repo_url + (if specified) branch
+ */
 
 export default class Location {
   constructor (arg) {
@@ -15,9 +27,13 @@ export default class Location {
       });
     }
     this.validateProps();
+    Log.debug("Location created: " + JSON.stringify(this));
   }
 
-
+  /**
+   * @function @private Sets object properties from a string URL
+   * @param {string} href - URL used to set properties using getFragmentProps()
+   */
   interpretURL(href) {
     const url = Url.parse(href);
     this.getFragmentProps(url.hash || "");
@@ -29,7 +45,10 @@ export default class Location {
     }
   }
 
-
+  /**
+   * @function @private Sets properties of this object from the hash
+   * @param {object} hash - unpacked from the fragment part of the URL
+   */
   getFragmentProps(hash) {
     const that = this;
     var pairs;
@@ -49,16 +68,23 @@ export default class Location {
     });
   }
 
-
+  /**
+   * @function @private Validate properties repo_url, path; derive path,
+   *  and repo_name, and base_url from them
+   */
   validateProps() {
     if (!this.repo_url) {
       throw new Error("'repo_url' must be defined");
     }
-    if (this.path_array) {
-      this.path = this.path_array.join("/");
-    }
     if (typeof this.path !== "string") {
       throw new Error("'path' must be defined");
+    }
+    if (Path.basename(this.path) === "README.md") {
+      this.path = Path.resolve(this.path, "..");
+    }
+    this.path = Path.normalize(this.path);
+    if (this.path === ".") {
+      this.path = "";
     }
     // strip any trailing slash
     if (this.repo_url.substr(-1) === "/") {
@@ -69,55 +95,72 @@ export default class Location {
       this.base_url += this.branch + "/";
     }
     this.repo_name = this.repo_url.substr(this.repo_url.lastIndexOf("/") + 1);
-    this.path_array = Utils.getPathArray(this.path);
   }
 
 
   getParentLocation() {
+    if (!this.path) {
+      return null;
+    }
     if (this.parent_location === undefined) {
       Log.debug("Location.getParentLocation(): " + this.path_array);
-      if (this.path_array.length === 0) {
-        this.parent_location = null;
-      } else {
-        this.parent_location = new Location({
-          path_array: Utils.getParentPathArray(this.path_array),
-          repo_url: this.repo_url,
-          branch: this.branch,
-          action: this.action,
-        });
-      }
+      this.parent_location = new Location({
+        path: Path.resolve(this.path, ".."),
+        repo_url: this.repo_url,
+        branch: this.branch,
+        action: this.action,
+      });
     }
     return this.parent_location;
   }
 
 
-  getRelativeURL() {
-    return Utils.getFileFromPathArray(this.path_array);
+  appearsToBeAFile(path) {
+    return !!Path.extname(path || this.path);
   }
 
 
-  getFullPathArrayFromRelative(relative_path) {
-    var path_array;
-    if (typeof relative_path_or_array === "string") {
-      relative_path = Utils.getPathArray(relative_path);
+  isMarkdownFile(path) {
+    return (Path.extname(path || this.path) === ".md");
+  }
+
+
+  getSourceFileURL() {
+    var out = this.path;
+    if (!this.appearsToBeAFile()) {
+      out += "/README.md";
     }
-    path_array = this.path_array.concat(relative_path);
-    Utils.normalizePathArray(path_array);
-    return path_array;
+    return Path.normalize(out);
   }
 
 
-  getHashFromFullPathArray(path) {
+  getFullPathFromRelative(path) {
+    return Path.resolve(this.path, path);
+  }
+
+
+  getHash(path) {
     var new_url = "#repo_url=" + this.repo_url;
     if (this.branch) {
       new_url += "&branch=" + this.branch;
     }
     new_url += "&action=" + this.action;
-    if (Array.isArray(path)) {
-      path = path.join("/");
-    }
     new_url += "&path=" + path;
-    Log.trace("Location.getFullHashFromRoot(" + path + ") = " + new_url);
     return new_url;
   }
+
+
+  splitPath(path) {
+    const array = (path || this.path).split("/");
+    let i = 0;
+    while (i < array.length) {
+      if (array[i]) {
+        i += 1;
+      } else {
+        array.splice(i, 1);
+      }
+    }
+    return array;
+  }
+
 }

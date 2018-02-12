@@ -8,29 +8,29 @@ export default class Header extends React.Component {
 
   getBreadcrumbs() {
     const that = this;
+    const split_path = this.props.location.splitPath();
     var breadcrumbs = [];
-    var concat_path = [];
+    var concat_path = "";
     var i;
     var j = 0;
 
     function addBreadcrumb(label, final_part) {
       const key = "bc_" + j;
-      const url = that.props.location.getHashFromFullPathArray(concat_path);
       j += 1;
       if (final_part) {
         breadcrumbs.push(<li key={key} className="active">{label}</li>);
       } else {
         breadcrumbs.push(<li key={key}>
-          <a href={url}>{label}</a> <span className="divider">/</span></li>);
+          <a href={that.props.location.getHash(concat_path)}>{label}</a>
+          <span className="divider">/</span></li>);
       }
     }
 
-    if (this.props.location.path_array.length > 0) {
-      addBreadcrumb(this.props.location.repo_name, false, "");
-      for (i = 0; i < this.props.location.path_array.length; i += 1) {
-        concat_path.push(this.props.location.path_array[i]);
-        addBreadcrumb(this.props.location.path_array[i],
-          (i === this.props.location.path_array.length - 1));
+    if (split_path.length > 0) {
+      addBreadcrumb(this.props.location.repo_name, false);
+      for (i = 0; i < split_path.length; i += 1) {
+        concat_path += "/" + split_path[i];
+        addBreadcrumb(split_path[i], (i === split_path.length - 1));
       }
     } else {
       addBreadcrumb(this.props.location.repo_name, true);
@@ -48,21 +48,24 @@ export default class Header extends React.Component {
         <div className="navbar-icon">
           <a href="#"><img src="icon.png" /></a>
         </div>
-        <div className="navbar-search">
-          <input type="text" id="search_box" placeholder="search" />
-        </div>
         <div className="navbar-breadcrumbs">
           <ul id="curr_location">
             {breadcrumbs}
           </ul>
         </div>
-        <div className="navbar-buttons">
-          <div className="btn-group">
-            <a id="caching" type="button" className="btn btn-mini active"
-              title="get documents from local storage instead of the server">Caching</a>
-            <a id="list_docs" type="button" className="btn btn-mini" href="#action=index"
-              title="list the cached documents in this repo, and highlight broken links">Index</a>
-          </div>
+        <div style={{
+          fontSize: "32px",
+          right: 0,
+          padding: "14px 10px",
+          backgroundColor: "#f5f5f5",
+        }}>
+          <a id="info" type="button" href="#action=info" style={{
+            color: "#000",
+          }}
+          title="view information about this repo, and highlight broken links">🛈</a>
+        </div>
+        <div className="navbar-search">
+          <input type="text" id="search_box" placeholder="search" />
         </div>
       </nav>
     );

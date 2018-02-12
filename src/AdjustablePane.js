@@ -1,0 +1,103 @@
+
+import React from "react";
+import PropTypes from "prop-types";
+
+/* globals window */
+
+// const Log = require("loglevel").getLogger("dox.AdjustablePane");
+
+
+export default class AdjustablePane extends React.Component {
+  constructor(props) {
+    super(props);
+    this.max_width = 6;
+    this.state = {
+      width: this.determineWidth(), // 0 = minimized, 1, 2, etc = pixels/200
+    };
+  }
+
+
+  determineWidth() {
+    var width = 2;
+    if (window) {
+      width = Math.floor(window.innerWidth / 450);
+      this.max_width = Math.floor(window.innerWidth / 350);
+    }
+    return width;
+  }
+
+
+  render() {
+    const style = {
+      position: "relative",
+      width: (this.state.width * 200) + "px",
+    };
+    if (this.state.width === 0) {
+      style.width = "20px";
+      style.padding = "5px";
+    }
+    return (
+      <div id="left_pane" style={style}>
+        {this.renderAdusterIcons()}
+        {this.state.width > 0 && this.props.children}
+      </div>
+    );
+  }
+
+
+  renderAdusterIcons() {
+    return (
+      <div style={{
+        position: "absolute",
+        fontSize: "24px",
+        cursor: "pointer",
+        left: "5px",
+        top: "5px",
+      }}>
+        {(this.state.width > 0) && this.renderWidthSmaller()}
+        {(this.state.width < this.max_width) && this.renderWidthLarger()}
+      </div>
+    );
+  }
+
+
+  renderWidthSmaller() {
+    const that = this;
+    function handler() {
+      if (that.state.width < 1) {
+        return;
+      }
+      that.setState({
+        width: that.state.width - 1,
+      });
+    }
+    return (
+      <span onClick={handler}>⇚</span>
+    );
+  }
+
+
+  renderWidthLarger() {
+    const that = this;
+    function handler() {
+      if (that.state.width >= that.max_width) {
+        return;
+      }
+      that.setState({
+        width: that.state.width + 1,
+      });
+    }
+    return (
+      <span onClick={handler}>⇛</span>
+    );
+  }
+
+}
+
+
+AdjustablePane.propTypes = {
+  children: PropTypes.oneOfType([
+    PropTypes.arrayOf(PropTypes.node),
+    PropTypes.node,
+  ]),
+};

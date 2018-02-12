@@ -3,8 +3,8 @@ import React from "react";
 import PropTypes from "prop-types";
 import Location from "./Location.js";
 
+const Path = require("path");
 const Log = require("loglevel").getLogger("dox.Pane");
-const Utils = require("./Utils.js");
 const Viz = require("viz.js");
 const Marked = require("marked");
 const IndexedDBAjaxStore = require("lapis/IndexedDBAjaxStore.js");
@@ -16,7 +16,6 @@ export default class Pane extends React.Component {
     this.state = {
       ready: false,
       content: "Loading...",
-      width: 1, // 0 = minimized, 1 = normal, 2 = maximized
     };
     this.load(props);
   }
@@ -24,7 +23,9 @@ export default class Pane extends React.Component {
 
   load(props) {
     const that = this;
-    props.store.getDoc(props.location.getRelativeURL())
+    const file_url = props.location.getSourceFileURL();
+    Log.debug("Pane.load() getting: " + file_url);
+    props.store.getDoc(file_url)
       .then(function (doc_obj) {
         Log.debug("doc_obj got, setting Pane.state.ready = true");
         that.setState({
@@ -67,24 +68,25 @@ export default class Pane extends React.Component {
 
   isURLNeedingConversion(href) {
     Log.debug("convertRelativePath(" + href + ") tests: "
-      + Utils.isRelativePath(href) + ", "
-      + Utils.appearsToBeAFile(href) + ", "
-      + Utils.isMarkdownFile(href));
+      + Path.isAbsolute(href) + ", "
+      + this.props.location.appearsToBeAFile(href) + ", "
+      + this.props.location.isMarkdownFile(href));
 
-    return (Utils.isRelativePath(href)
-        && (!Utils.appearsToBeAFile(href) || Utils.isMarkdownFile(href)));
+    return (!Path.isAbsolute(href)
+        && (!this.props.location.appearsToBeAFile(href)
+          || this.props.location.isMarkdownFile(href)));
   }
 
 
   convertURL(href, label) {
-    var full_path = this.props.location.getFullPathArrayFromRelative(href);
-    var out = "[" + label + "](" + this.props.location.getHashFromFullPathArray(full_path) + ")";
+    var full_path = this.props.location.getFullPathFromRelative(href);
+    var out = "[" + label + "](" + this.props.location.getHash(full_path) + ")";
 
     Log.debug("convertURL(" + href + "): " + full_path);
     if (this.props.highlight_link) {
       Log.debug("highlight_link path: " + this.props.highlight_link.path);
     }
-    if (this.props.highlight_link && this.props.highlight_link.path === full_path.join("/")) {
+    if (this.props.highlight_link && this.props.highlight_link.path === full_path) {
       out = "**" + out + "**";
     }
     return out;
@@ -158,15 +160,9 @@ export default class Pane extends React.Component {
 
 
   render() {
-    var id = this.props.id + "_pane";
-    var classes = "flex_item";
-    if (this.props.id === "left") {
-      classes += " flex_width_" + this.state.width;
-    }
-    Log.debug("Pane.render() " + this.props.id + ", " + this.props.location.path + ", " + this.state.ready);
+    Log.debug("Pane.render() " + this.props.location.path + ", " + this.state.ready);
     return (
-      <div id={id} className={classes}>
-        {(this.props.id === "left") && this.renderWidthControl()}
+      <div>
         <p dangerouslySetInnerHTML={{
           __html: this.state.content,
         }}></p>
@@ -174,56 +170,10 @@ export default class Pane extends React.Component {
     );
   }
 
-  renderWidthControl() {
-    return (
-      <div style={{
-        float: "right",
-        fontSize: "24px",
-        cursor: "pointer",
-      }}>
-        {(this.state.width > 0) && this.renderWidthSmaller()}
-        {(this.state.width < 2) && this.renderWidthLarger()}
-      </div>
-    );
-  }
-
-
-  renderWidthSmaller() {
-    const that = this;
-    function handler() {
-      if (that.state.width < 1) {
-        return;
-      }
-      that.setState({
-        width: that.state.width - 1,
-      });
-    }
-    return (
-      <span onClick={handler}>⇚</span>
-    );
-  }
-
-
-  renderWidthLarger() {
-    const that = this;
-    function handler() {
-      if (that.state.width > 1) {
-        return;
-      }
-      that.setState({
-        width: that.state.width + 1,
-      });
-    }
-    return (
-      <span onClick={handler}>⇛</span>
-    );
-  }
-
 }
 
 
 Pane.propTypes = {
-  id: PropTypes.string.isRequired,
   store: PropTypes.instanceOf(IndexedDBAjaxStore).isRequired,
   location: PropTypes.instanceOf(Location).isRequired,
   highlight_link: PropTypes.instanceOf(Location),
