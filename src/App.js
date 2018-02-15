@@ -12,7 +12,6 @@ const IndexedDB = require("lapis/IndexedDB.js");
 const IndexedDBAjaxStore = require("lapis/IndexedDBAjaxStore.js");
 
 const idb_version = 1; // integer version sequence
-// const npm_version = "0.1.0"; // TODO - get from package.json
 
 
 require("loglevel").setLevel("debug");
