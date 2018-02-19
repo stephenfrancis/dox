@@ -49,7 +49,7 @@ export default class AdjustablePane extends React.Component {
     return (
       <div style={{
         position: "absolute",
-        fontSize: "24px",
+        fontSize: "16px",
         cursor: "pointer",
         left: "5px",
         top: "5px",
@@ -72,7 +72,7 @@ export default class AdjustablePane extends React.Component {
       });
     }
     return (
-      <span onClick={handler}>⇚</span>
+      <span onClick={handler}>❮</span>
     );
   }
 
@@ -88,7 +88,7 @@ export default class AdjustablePane extends React.Component {
       });
     }
     return (
-      <span onClick={handler}>⇛</span>
+      <span onClick={handler}>❯</span>
     );
   }
 
