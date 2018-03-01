@@ -1,10 +1,16 @@
 
-import React from "react";
-import PropTypes from "prop-types";
-import Location from "./Location.js";
+import * as React from "react";
+import * as RootLog from "loglevel";
+import Location from "./Location";
 
+interface Props {
+  location: Location;
+  changeAction: Function;
+}
 
-export default class Header extends React.Component {
+interface State {}
+
+export default class Header extends React.Component<Props, State> {
 
   getBreadcrumbs() {
     const that = this;
@@ -27,13 +33,13 @@ export default class Header extends React.Component {
     }
 
     if (split_path.length > 0) {
-      addBreadcrumb(this.props.location.repo_name, false);
+      addBreadcrumb(this.props.location.getRepoName(), false);
       for (i = 0; i < split_path.length; i += 1) {
         concat_path += "/" + split_path[i];
         addBreadcrumb(split_path[i], (i === split_path.length - 1));
       }
     } else {
-      addBreadcrumb(this.props.location.repo_name, true);
+      addBreadcrumb(this.props.location.getRepoName(), true);
     }
 
     return breadcrumbs;
@@ -59,7 +65,7 @@ export default class Header extends React.Component {
           padding: "14px 10px",
           backgroundColor: "#f5f5f5",
         }}>
-          <a id="info" type="button" href="#action=info" style={{
+          <a id="info" type="button" onClick={this.props.changeAction.bind(this, "info")} style={{
             color: "#000",
           }}
           title="view information about this repo, and highlight broken links">🛈</a>
@@ -71,8 +77,3 @@ export default class Header extends React.Component {
     );
   }
 }
-
-
-Header.propTypes = {
-  location: PropTypes.instanceOf(Location).isRequired,
-};

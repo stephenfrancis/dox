@@ -1,13 +1,19 @@
 
-import React from "react";
-import PropTypes from "prop-types";
+import * as React from "react";
+import * as RootLog from "loglevel";
 
 /* globals window */
 
-// const Log = require("loglevel").getLogger("dox.AdjustablePane");
+interface Props {}
+
+interface State {
+  width: number;
+}
 
 
-export default class AdjustablePane extends React.Component {
+export default class AdjustablePane extends React.Component<Props, State> {
+  private max_width: number;
+
   constructor(props) {
     super(props);
     this.max_width = 6;
@@ -31,7 +37,7 @@ export default class AdjustablePane extends React.Component {
     const style = {
       position: "relative",
       width: (this.state.width * 200) + "px",
-    };
+    } as any;
     if (this.state.width === 0) {
       style.width = "20px";
       style.padding = "5px";
@@ -93,11 +99,3 @@ export default class AdjustablePane extends React.Component {
   }
 
 }
-
-
-AdjustablePane.propTypes = {
-  children: PropTypes.oneOfType([
-    PropTypes.arrayOf(PropTypes.node),
-    PropTypes.node,
-  ]),
-};

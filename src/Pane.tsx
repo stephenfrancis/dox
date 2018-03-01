@@ -1,22 +1,37 @@
 
-import React from "react";
-import PropTypes from "prop-types";
-import Location from "./Location.js";
+import * as React from "react";
+import * as RootLog from "loglevel";
+import * as _ from "underscore";
+import * as Path from "path";
+import * as Viz from "viz.js";
+import * as Marked from "marked";
+import * as IndexedDBAjaxStore from "lapis/IndexedDBAjaxStore";
+import Location from "./Location";
 
-const Path = require("path");
-const Log = require("loglevel").getLogger("dox.Pane");
-const Viz = require("viz.js");
-const Marked = require("marked");
-const IndexedDBAjaxStore = require("lapis/IndexedDBAjaxStore.js");
+
+const Log = RootLog.getLogger("dox.Pane");
 
 
-export default class Pane extends React.Component {
+interface Props {
+  store: IndexedDBAjaxStore;
+  location: Location;
+  highlight_link?: Location;
+}
+
+interface State {
+  ready: boolean;
+  content: string;
+}
+
+export default class Pane extends React.Component<Props, State> {
+  private digraph_block: string[];
+
   constructor(props) {
     super(props);
     this.state = {
       ready: false,
       content: "Loading...",
-    };
+    } as State;
     this.load(props);
   }
 
@@ -43,7 +58,7 @@ export default class Pane extends React.Component {
   }
 
 
-  convertDocumentContent(markdown) {
+  convertDocumentContent(markdown: string): string {
     var html;
     markdown = this.convertRelativePaths(markdown);
     markdown = this.separateOutDigraphBlocks(markdown);
@@ -54,7 +69,7 @@ export default class Pane extends React.Component {
 
 
   // only INLINE markdown links are converted as relative URLs
-  convertRelativePaths(markdown) {
+  convertRelativePaths(markdown: string): string {
     const that = this;
     return markdown.replace(/\[(.*)\]\((.*?)\)/g, function (match_all, match_1, match_2) {
       Log.debug("convertRelativePaths() match: " + match_1 + ", " + match_2);
@@ -66,7 +81,7 @@ export default class Pane extends React.Component {
   }
 
 
-  isURLNeedingConversion(href) {
+  isURLNeedingConversion(href: string): boolean {
     Log.debug("convertRelativePath(" + href + ") tests: "
       + Path.isAbsolute(href) + ", "
       + this.props.location.appearsToBeAFile(href) + ", "
@@ -78,27 +93,27 @@ export default class Pane extends React.Component {
   }
 
 
-  convertURL(href, label) {
+  convertURL(href: string, label: string): string {
     var full_path = this.props.location.getFullPathFromRelative(href);
     var out = "[" + label + "](" + this.props.location.getHash(full_path) + ")";
 
     Log.debug("convertURL(" + href + "): " + full_path);
     if (this.props.highlight_link) {
-      Log.debug("highlight_link path: " + this.props.highlight_link.path);
+      Log.debug("highlight_link path: " + this.props.highlight_link.getPath());
     }
-    if (this.props.highlight_link && this.props.highlight_link.path === full_path) {
+    if (this.props.highlight_link && this.props.highlight_link.getPath() === full_path) {
       out = "**" + out + "**";
     }
     return out;
   }
 
 
-  convertMarkdownToHTML(markdown) {
+  convertMarkdownToHTML(markdown: string): string {
     return Marked(markdown, { smartypants: true, });
   }
 
 
-  separateOutDigraphBlocks(markdown) {
+  separateOutDigraphBlocks(markdown: string): string {
     const lines = markdown.split("\n");
     var out = "";
     var block_number = 0;
@@ -126,7 +141,7 @@ export default class Pane extends React.Component {
   }
 
 
-  applyViz(html) {
+  applyViz(html: string): string {
     const that = this;
     Log.trace("applyViz() : " + that.digraph_block.length);
     return html.replace(/¬¬DIGRAPH<(\d+)>¬¬/, function (match, match_1) {
@@ -160,7 +175,7 @@ export default class Pane extends React.Component {
 
 
   render() {
-    Log.debug("Pane.render() " + this.props.location.path + ", " + this.state.ready);
+    Log.debug("Pane.render() " + this.props.location.getPath() + ", " + this.state.ready);
     return (
       <div>
         <p dangerouslySetInnerHTML={{
@@ -171,10 +186,3 @@ export default class Pane extends React.Component {
   }
 
 }
-
-
-Pane.propTypes = {
-  store: PropTypes.instanceOf(IndexedDBAjaxStore).isRequired,
-  location: PropTypes.instanceOf(Location).isRequired,
-  highlight_link: PropTypes.instanceOf(Location),
-};
