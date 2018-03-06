@@ -12,6 +12,7 @@ const Log = RootLog.getLogger("dox.Doc");
 
 export default class Doc {
   private child_docs: any;
+  private doc_title: string;
   private is_directory: boolean;
   private parent_doc?: Doc;
   private path: string;
@@ -35,6 +36,7 @@ export default class Doc {
       throw new Error(`Doc seems neither a directory nor a markdown file: ${path}`);
     }
     this.path = path;
+    this.doc_title = Path.basename(path);
     this.is_directory = (extname === "");
   }
 
@@ -112,12 +114,26 @@ export default class Doc {
   }
 
 
+  public getTitle(): string {
+    return this.doc_title;
+  }
+
+
   private load() {
+    const that = this;
     const file_url = this.getSourceFileURL();
     Log.debug("Doc.load() getting: " + file_url);
     this.promise = this.repo.getPromise()
       .then(function (store) {
         return store.getDoc(file_url) as Promise<string>;
+      })
+      .then(function (content) {
+        var match = content.match(/^\n*#\s*(.*)[\r\n]/);
+        if (match) {
+          Log.debug(`setting doc_title to: ${match[1]}`);
+          that.doc_title = match[1];
+        }
+        return content;
       });
   }
 
@@ -222,5 +238,29 @@ export default class Doc {
     });
   }
 
+
+  private getDocLinks(content) {
+    var regex1 = /\]\((.*?)\)/g; // replace(regex, callback) doesn't seem to support capturing groups
+    var regex2 = /URL\s*=\s*\"([\w\.\/]+)\"/g;
+    var that = this;
+    var matches;
+    var i;
+
+    function addLink(match) {
+      if (match && match.length > 1 && match[1] && !Path.isAbsolute(match[1])) {
+        that.repo.getDoc(match[1]);
+      }
+    }
+    matches = content.match(regex1);
+    for (i = 0; matches && i < matches.length; i += 1) {
+      addLink(regex1.exec(matches[i]));
+      regex1.exec(""); // every other call to regex.exec() returns null for some reason...!
+    }
+    matches = content.match(regex2);
+    for (i = 0; matches && i < matches.length; i += 1) {
+      addLink(regex2.exec(matches[i]));
+      regex2.exec(""); // every other call to regex.exec() returns null for some reason...!
+    }
+  }
 
 }

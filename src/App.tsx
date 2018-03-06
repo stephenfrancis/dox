@@ -51,14 +51,19 @@ class App extends React.Component<Props, State> {
 
   private makeRepoDocState(): State {
     const url_props = Utils.getFragmentPropsFromURL(window.location.href);
-    const same_repo = this.state.repo &&
+    const same_repo = this.state && this.state.repo &&
       this.state.repo.isSameRepo(url_props.repo_url, url_props.branch);
     const repo = same_repo ? this.state.repo :
       new Repo(url_props.repo_url, url_props.branch);
-    const that = this;
+    const doc = repo.getDoc(url_props.path || "/");
+    doc.getPromiseMarkdown()
+      .then(function () {
+        Log.debug(`setting window title: ${doc.getTitle()}`);
+        window.document.title = doc.getTitle();
+      });
     return {
       action: "view",
-      doc: repo.getDoc(url_props.path || "/"),
+      doc: doc,
       repo: repo,
     } as State;
   }
