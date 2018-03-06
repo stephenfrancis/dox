@@ -1,10 +1,10 @@
 
 import * as React from "react";
 import * as RootLog from "loglevel";
-import Location from "./Location";
+import Doc from "./Doc";
 
 interface Props {
-  location: Location;
+  doc: Doc;
   changeAction: Function;
 }
 
@@ -14,34 +14,20 @@ export default class Header extends React.Component<Props, State> {
 
   getBreadcrumbs() {
     const that = this;
-    const split_path = this.props.location.splitPath();
-    var breadcrumbs = [];
-    var concat_path = "";
-    var i;
+    const breadcrumbs = [];
     var j = 0;
+    var doc = this.props.doc;
 
-    function addBreadcrumb(label, final_part) {
-      const key = "bc_" + j;
+    breadcrumbs.unshift(<li key={"bc_" + j} className="active">{doc.getName()}</li>);
+    while (doc = doc.getParentDoc()) {
       j += 1;
-      if (final_part) {
-        breadcrumbs.push(<li key={key} className="active">{label}</li>);
-      } else {
-        breadcrumbs.push(<li key={key}>
-          <a href={that.props.location.getHash(concat_path)}>{label}</a>
-          <span className="divider">/</span></li>);
-      }
+      breadcrumbs.unshift(<li key={"bc_" + j}>
+        <a href={doc.getHash()}>{doc.getName()}</a>
+        <span className="divider">/</span></li>);
     }
-
-    if (split_path.length > 0) {
-      addBreadcrumb(this.props.location.getRepoName(), false);
-      for (i = 0; i < split_path.length; i += 1) {
-        concat_path += "/" + split_path[i];
-        addBreadcrumb(split_path[i], (i === split_path.length - 1));
-      }
-    } else {
-      addBreadcrumb(this.props.location.getRepoName(), true);
-    }
-
+    doc = this.props.doc.getRepo().getDoc("/");
+    breadcrumbs.unshift(<li key="bc_repo">
+      <a href={doc.getHash()}>{doc.getRepo().getRepoName()}</a></li>);
     return breadcrumbs;
   }
 
