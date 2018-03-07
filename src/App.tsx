@@ -60,6 +60,7 @@ class App extends React.Component<Props, State> {
       .then(function () {
         Log.debug(`setting window title: ${doc.getTitle()}`);
         window.document.title = doc.getTitle();
+        window.scroll(0, 0);
       });
     return {
       action: "view",
