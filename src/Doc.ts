@@ -143,6 +143,7 @@ export default class Doc {
     const digraph_blocks = [];
     markdown = this.convertRelativePaths(markdown, highlight_link_path);
     markdown = this.separateOutDigraphBlocks(markdown, digraph_blocks);
+    this.convertRelativePathsInDigraphBlocks(digraph_blocks, highlight_link_path);
     html = this.convertMarkdownToHTML(markdown);
     html = this.applyViz(html, digraph_blocks);
     return html;
@@ -159,6 +160,20 @@ export default class Doc {
       }
       return "[" + match_1 + "](" + match_2 + ")";
     });
+  }
+
+
+  private convertRelativePathsInDigraphBlocks(digraph_blocks: Array<string>, highlight_link_path?: string) {
+    const that = this;
+    for (let i = 0; i < digraph_blocks.length; i += 1) {
+      digraph_blocks[i] = digraph_blocks[i].replace(/URL="(.*)"/g, function (match_all, match_1) {
+        Log.debug(`convertRelativePathsInDigraphBlocks() match: ${match_1}`);
+        if (that.isURLNeedingConversion(match_1)) {
+          match_1 = that.getHash(that.getFullPathFromRelative(match_1));
+        }
+        return "URL=\"" + match_1 + "\"";
+      });
+    }
   }
 
 
