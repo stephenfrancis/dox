@@ -1,7 +1,6 @@
 
 import * as React from "react";
 import * as RootLog from "loglevel";
-import * as _ from "underscore";
 import * as Path from "path";
 import * as IndexedDBAjaxStore from "lapis/IndexedDBAjaxStore";
 import Doc from "./Doc";
@@ -51,9 +50,13 @@ export default class Pane extends React.Component<Props, State> {
 
 
   render() {
+    const style: any = {};
     Log.debug("Pane.render() " + this.props.doc.getPath() + ", " + this.state.ready);
+    if (!this.state.ready) {
+      style.opacity = 0.5;
+    }
     return (
-      <div>
+      <div style={{style}}>
         <p dangerouslySetInnerHTML={{
           __html: this.state.content,
         }}></p>
