@@ -14,6 +14,7 @@ export default class Doc {
   private child_docs: any;
   private doc_title: string;
   private is_directory: boolean;
+  private loaded: boolean;
   private parent_doc?: Doc;
   private path: string;
   private promise: Promise<string>;
@@ -22,6 +23,7 @@ export default class Doc {
 
   constructor (repo: Repo, path: string, parent_doc: Doc) {
     this.child_docs = {};
+    this.loaded = false;
     this.parent_doc = parent_doc;
     this.repo = repo;
     if (Path.basename(path) === "README.md") {
@@ -51,7 +53,27 @@ export default class Doc {
 
 
   public getChildDoc(dirname: string) {
+    Log.debug(`Doc.getChildDoc(${dirname})`);
     return this.child_docs[dirname];
+  }
+
+
+  public getChildDocs(): Array<Doc> {
+    if (!this.loaded) {
+      throw new Error("must only be called once loaded");
+    }
+    const that = this;
+    return Object.keys(this.child_docs).map(function (name) {
+      return that.child_docs[name];
+    });
+  }
+
+
+  public getChildNames(): Array<string> {
+    if (!this.loaded) {
+      throw new Error("must only be called once loaded");
+    }
+    return Object.keys(this.child_docs);
   }
 
 
@@ -70,6 +92,11 @@ export default class Doc {
 
   public getName(): string {
     return Path.basename(this.path);
+  }
+
+
+  public getOrCreateChildDoc(dirname: string): Doc {
+    return this.getChildDoc(dirname) || this.createChildDoc(dirname);
   }
 
 
@@ -119,6 +146,14 @@ export default class Doc {
   }
 
 
+  public hasChildren(): boolean {
+    if (!this.loaded) {
+      throw new Error("must only be called once loaded");
+    }
+    return (Object.keys(this.child_docs).length > 0);
+  }
+
+
   private load() {
     const that = this;
     const file_url = this.getSourceFileURL();
@@ -133,6 +168,8 @@ export default class Doc {
           Log.debug(`setting doc_title to: ${match[1]}`);
           that.doc_title = match[1];
         }
+        that.getDocLinks(content);
+        that.loaded = true;
         return content;
       });
   }
@@ -178,12 +215,14 @@ export default class Doc {
 
 
   private isURLNeedingConversion(href: string): boolean {
-    Log.debug("convertRelativePath(" + href + ") tests: "
-      + Path.isAbsolute(href) + ", "
-      + Utils.appearsToBeAFile(href) + ", "
-      + Utils.isMarkdownFile(href));
+    Log.debug(`convertRelativePath(${href}) tests:
+      ${Utils.isProtocolRelativeURL(href)}
+      ${Path.isAbsolute(href)}
+      ${Utils.appearsToBeAFile(href)}
+      ${Utils.isMarkdownFile(href)}`);
 
-    return (!Path.isAbsolute(href)
+    return (Utils.isProtocolRelativeURL(href)
+        && !Path.isAbsolute(href)
         && (!Utils.appearsToBeAFile(href)
           || Utils.isMarkdownFile(href)));
   }
@@ -262,8 +301,8 @@ export default class Doc {
     var i;
 
     function addLink(match) {
-      if (match && match.length > 1 && match[1] && !Path.isAbsolute(match[1])) {
-        that.repo.getDoc(match[1]);
+      if (match && match.length > 1 && match[1] && that.isURLNeedingConversion(match[1])) {
+        that.getRepo().getDoc(that.getFullPathFromRelative(match[1]));
       }
     }
     matches = content.match(regex1);

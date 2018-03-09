@@ -40,7 +40,7 @@ export default class Repo {
     let i = 0;
     while (i < array.length) {
       if (array[i]) {
-        doc = (doc.getChildDoc(array[i]) || doc.createChildDoc(array[i]));
+        doc = doc.getOrCreateChildDoc(array[i]);
         i += 1;
       } else {
         array.splice(i, 1);
@@ -66,6 +66,11 @@ export default class Repo {
 
   public getRepoName(): string {
     return this.repo_name;
+  }
+
+
+  public getRootDoc(): Doc {
+    return this.root_doc;
   }
 
 

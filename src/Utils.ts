@@ -45,4 +45,17 @@ export default class Utils {
     return (Path.extname(path) === ".md");
   }
 
+
+  static isProtocolRelativeURL(url: string): boolean {
+    const protocols = [
+      "ftp:",
+      "http:",
+      "https:",
+      "mailto:",
+    ];
+    return !protocols.reduce(function (prev_val: boolean, curr_val: string) {
+      return (prev_val || url.indexOf(curr_val) === 0);
+    }, false);
+  }
+
 }

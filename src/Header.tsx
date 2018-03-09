@@ -3,9 +3,12 @@ import * as React from "react";
 import * as RootLog from "loglevel";
 import Doc from "./Doc";
 
+const Log = RootLog.getLogger("dox.Header");
+
+
 interface Props {
   doc: Doc;
-  changeAction: Function;
+  changeAction(action: string): void;
 }
 
 interface State {}
@@ -32,9 +35,13 @@ export default class Header extends React.Component<Props, State> {
   }
 
 
+  changeAction(action: string) {
+    this.props.changeAction(action);
+  }
+
+
   render() {
     var breadcrumbs = this.getBreadcrumbs();
-
     return (
       <nav className="navbar">
         <div className="navbar-icon">
@@ -51,10 +58,13 @@ export default class Header extends React.Component<Props, State> {
           padding: "14px 10px",
           backgroundColor: "#f5f5f5",
         }}>
-          <a id="info" type="button" onClick={this.props.changeAction.bind(this, "info")} style={{
-            color: "#000",
-          }}
-          title="view information about this repo, and highlight broken links">🛈</a>
+          <a id="info" type="button" onClick={this.changeAction.bind(this, "info")}
+            title="view information about this repo, and highlight broken links"
+            style={{
+              color: "#000",
+              cursor: "pointer",
+              textDecoration: "none",
+            }}>🛈</a>
         </div>
         <div className="navbar-search">
           <input type="text" id="search_box" placeholder="search" />

@@ -20,6 +20,8 @@ li > p          { margin: 0; }
 li              { margin: 5px 0 5px 0; }
 /* Viz Styling... */
 .node           { font-family: Arial; }
+.lowkey         { color: #aaa; }
+.error          { color: red; font-weight: bold; }
 
 /*
 .flex_item      { flex: 1 1 50%; overflow-x: hidden; }
@@ -34,7 +36,6 @@ div.match_result:hover { background-color: #eee; cursor: pointer; }
 div.match_result > span { margin-left: 40px; color: #ccc; float: right; }
 div.match_result .highlight { background-color: yellow; }
 
-.missing        { color: red; font-weight: bold; }
 .divider        { padding: 5px; }
 .message        { margin: 50px; font-weight: bold; color: red; font-size: 24px; }
 

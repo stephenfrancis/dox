@@ -1,4 +1,3 @@
-/* globals window */
 
 import * as React from "react";
 import * as ReactDOM from "react-dom";
@@ -6,14 +5,16 @@ import * as RootLog from "loglevel";
 import * as _ from "underscore";
 import AdjustablePane from "./AdjustablePane";
 import Doc from "./Doc";
+import DocInfo from "./DocInfo";
 import Header from "./Header";
 import Pane from "./Pane";
 import Repo from "./Repo";
 import Utils from "./Utils";
 
-const Log = RootLog.getLogger("dox.App");
+/* globals window */
 
 RootLog.setLevel("debug");
+const Log = RootLog.getLogger("dox.App");
 
 
 interface Props {}
@@ -37,14 +38,14 @@ class App extends React.Component<Props, State> {
   }
 
 
-  changeAction(action: string) {
+  private changeAction(action: string) {
     this.setState({
       action: action,
     });
   }
 
 
-  hashChange() {
+  private hashChange() {
     this.setState(this.makeRepoDocState());
   }
 
@@ -72,6 +73,7 @@ class App extends React.Component<Props, State> {
 
   render() {
     var content;
+    Log.debug(`App.render() action: ${this.state.action}`);
     if (this.state.action === "view") {
       content = this.renderView();
     } else if (this.state.action === "search") {
@@ -91,7 +93,7 @@ class App extends React.Component<Props, State> {
     );
   }
 
-  renderView() {
+  private renderView() {
     var panes = [];
     var parent_doc = this.state.doc.getParentDoc();
     if (parent_doc) {
@@ -117,11 +119,17 @@ class App extends React.Component<Props, State> {
   }
 
 
-  renderSearch() {
+  private renderSearch() {
   }
 
 
-  renderInfo() {
+  private renderInfo() {
+    Log.debug("renderInfo()");
+    return (
+      <ul>
+        <DocInfo doc={this.state.repo.getRootDoc()} />
+      </ul>
+    );
   }
 
 }
