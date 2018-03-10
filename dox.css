@@ -38,6 +38,7 @@ div.match_result .highlight { background-color: yellow; }
 
 .divider        { padding: 5px; }
 .message        { margin: 50px; font-weight: bold; color: red; font-size: 24px; }
+.gen_block      { margin: 20px 0 20px 0; }
 
 @media print {
     body { font-family: Arial; }

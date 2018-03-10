@@ -21,7 +21,6 @@ const Log = RootLog.getLogger("dox.App");
 interface Props {}
 
 interface State {
-  action: string;
   doc: Doc;
   repo: Repo;
   search_term?: string;
@@ -40,14 +39,6 @@ class App extends React.Component<Props, State> {
   }
 
 
-  private changeAction(action: string, search_term?: string) {
-    this.setState({
-      action: action,
-      search_term: search_term,
-    });
-  }
-
-
   private hashChange() {
     this.setState(this.makeRepoDocState());
   }
@@ -57,40 +48,40 @@ class App extends React.Component<Props, State> {
     const url_props = Utils.getFragmentPropsFromURL(window.location.href);
     const same_repo = this.state && this.state.repo &&
       this.state.repo.isSameRepo(url_props.repo_url, url_props.branch);
-    const repo = same_repo ? this.state.repo :
-      new Repo(url_props.repo_url, url_props.branch);
-    const doc = repo.getDoc(url_props.path || "/");
-    doc.getPromiseMarkdown()
-      .then(function () {
-        Log.debug(`setting window title: ${doc.getTitle()}`);
-        window.document.title = doc.getTitle();
-        window.scroll(0, 0);
-      });
-    return {
-      action: "view",
-      doc: doc,
-      repo: repo,
+    const state = {
+      doc: null,
+      search_term: null,
+      repo: same_repo ? this.state.repo :
+        new Repo(url_props.repo_url, url_props.branch),
     } as State;
+
+    if (url_props.search_term) {
+      state.search_term = decodeURIComponent(url_props.search_term);
+    } else if (url_props.path) {
+      state.doc = state.repo.getDoc(url_props.path || "/");
+      state.doc.getPromiseMarkdown()
+        .then(function () {
+          Log.debug(`setting window title: ${state.doc.getTitle()}`);
+          window.document.title = state.doc.getTitle();
+          window.scroll(0, 0);
+        });
+    }
+    return state;
   }
 
 
   render() {
     var content;
-    Log.debug(`App.render() action: ${this.state.action}`);
-    if (this.state.action === "view") {
-      content = this.renderView();
-    } else if (this.state.action === "search") {
+    if (this.state.search_term) {
       content = this.renderSearch();
-    } else if (this.state.action === "info") {
-      content = this.renderInfo();
+    } else if (this.state.doc) {
+      content = this.renderView();
     } else {
-      content = (
-        <div className="message">Invalid action! {this.state.action}</div>
-      );
+      content = this.renderInfo();
     }
     return (
       <div>
-        <Header doc={this.state.doc} changeAction={this.changeAction.bind(this)} />
+        <Header repo={this.state.repo} doc={this.state.doc} />
         {content}
       </div>
     );
@@ -124,8 +115,8 @@ class App extends React.Component<Props, State> {
 
   private renderSearch() {
     return (
-      <div style={{ padding: "10px", }}>
-        <div>Search term: <b>{this.state.search_term}</b></div>
+      <div style={{ padding: "20px", }}>
+        <div className="gen_block">Search term: <b>{this.state.search_term}</b></div>
         <DocSearchResult doc={this.state.repo.getRootDoc()} search_term={this.state.search_term} />
       </div>
     );
@@ -135,8 +126,8 @@ class App extends React.Component<Props, State> {
   private renderInfo() {
     Log.debug("renderInfo()");
     return (
-      <div>
-        <div>Repo: <b>{this.state.repo.getRepoName()}</b></div>
+      <div style={{ padding: "20px", }}>
+        <div className="gen_block">Repo: <b>{this.state.repo.getRepoName()}</b></div>
         <ul>
           <DocInfo doc={this.state.repo.getRootDoc()} />
         </ul>

@@ -30,21 +30,12 @@ export default class DocSearchResult extends React.Component<Props, State> {
     this.state = {
       load_state: LoadState.Loading,
     } as State;
-    const that = this;
-    this.props.doc.getPromiseMarkdown()
-      .then(function (content) {
-        Log.debug("SearchMatch promise returned");
-        that.matches = that.getMatches(content);
-        that.setState({
-          load_state: LoadState.Ready,
-        } as State);
-      })
-      .then(null, function (err) {
-        that.load_err = String(err);
-        that.setState({
-          load_state: LoadState.Failed,
-        } as State);
-      });
+    this.load(props);
+  }
+
+
+  componentWillReceiveProps(next_props) {
+    this.load(next_props);
   }
 
 
@@ -59,10 +50,29 @@ export default class DocSearchResult extends React.Component<Props, State> {
       j += 1;
       const match = regex1.exec(line);
       if (match) {
-        out.push(<li key={"line" + j}>{j}: {match[1]}<b>{match[2]}</b>{match[3]}</li>);
+        out.push(<li key={"line" + j}>Line {j}: {match[1]}<span className="highlight">{match[2]}</span>{match[3]}</li>);
       }
     });
     return out;
+  }
+
+
+  load(props) {
+    const that = this;
+    props.doc.getPromiseMarkdown()
+      .then(function (content) {
+        Log.debug("SearchMatch promise returned");
+        that.matches = that.getMatches(content);
+        that.setState({
+          load_state: LoadState.Ready,
+        } as State);
+      })
+      .then(null, function (err) {
+        that.load_err = String(err);
+        that.setState({
+          load_state: LoadState.Failed,
+        } as State);
+      });
   }
 
 
@@ -94,7 +104,8 @@ export default class DocSearchResult extends React.Component<Props, State> {
 
 
   renderFailed() {
-    return (<div className="error">failed to load: {this.props.doc.getName()}, error: {this.load_err}</div>);
+    return (<div className="gen_block error">failed to load:
+      {this.props.doc.getName()}, error: {this.load_err}</div>);
   }
 
 
@@ -121,7 +132,7 @@ export default class DocSearchResult extends React.Component<Props, State> {
 
 
   renderUnready() {
-    return (<div>loading: {this.props.doc.getName()}</div>);
+    return (<div className="gen_block">loading: {this.props.doc.getName()}</div>);
   }
 
 }
