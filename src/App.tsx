@@ -6,6 +6,7 @@ import * as _ from "underscore";
 import AdjustablePane from "./AdjustablePane";
 import Doc from "./Doc";
 import DocInfo from "./DocInfo";
+import DocSearchResult from "./DocSearchResult";
 import Header from "./Header";
 import Pane from "./Pane";
 import Repo from "./Repo";
@@ -21,8 +22,9 @@ interface Props {}
 
 interface State {
   action: string;
-  repo: Repo;
   doc: Doc;
+  repo: Repo;
+  search_term?: string;
 }
 
 class App extends React.Component<Props, State> {
@@ -38,9 +40,10 @@ class App extends React.Component<Props, State> {
   }
 
 
-  private changeAction(action: string) {
+  private changeAction(action: string, search_term?: string) {
     this.setState({
       action: action,
+      search_term: search_term,
     });
   }
 
@@ -120,15 +123,24 @@ class App extends React.Component<Props, State> {
 
 
   private renderSearch() {
+    return (
+      <div style={{ padding: "10px", }}>
+        <div>Search term: <b>{this.state.search_term}</b></div>
+        <DocSearchResult doc={this.state.repo.getRootDoc()} search_term={this.state.search_term} />
+      </div>
+    );
   }
 
 
   private renderInfo() {
     Log.debug("renderInfo()");
     return (
-      <ul>
-        <DocInfo doc={this.state.repo.getRootDoc()} />
-      </ul>
+      <div>
+        <div>Repo: <b>{this.state.repo.getRepoName()}</b></div>
+        <ul>
+          <DocInfo doc={this.state.repo.getRootDoc()} />
+        </ul>
+      </div>
     );
   }
 

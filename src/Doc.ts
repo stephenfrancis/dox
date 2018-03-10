@@ -215,7 +215,7 @@ export default class Doc {
 
 
   private isURLNeedingConversion(href: string): boolean {
-    Log.debug(`convertRelativePath(${href}) tests:
+    Log.trace(`convertRelativePath(${href}) tests:
       ${Utils.isProtocolRelativeURL(href)}
       ${Path.isAbsolute(href)}
       ${Utils.appearsToBeAFile(href)}

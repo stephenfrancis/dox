@@ -8,12 +8,13 @@ const Log = RootLog.getLogger("dox.Header");
 
 interface Props {
   doc: Doc;
-  changeAction(action: string): void;
+  changeAction(action: string, search_term?: string): void;
 }
 
 interface State {}
 
 export default class Header extends React.Component<Props, State> {
+  private search_input: any;
 
   getBreadcrumbs() {
     const that = this;
@@ -37,6 +38,19 @@ export default class Header extends React.Component<Props, State> {
 
   changeAction(action: string) {
     this.props.changeAction(action);
+  }
+
+
+  setupSearchInput(input): void {
+    this.search_input = input;
+  }
+
+
+  triggerSearch() {
+    const search_term = this.search_input.value;
+    this.search_input.value = "";
+    // alert(`search for: '${search_term}'`);
+    this.props.changeAction("search", search_term);
   }
 
 
@@ -67,7 +81,9 @@ export default class Header extends React.Component<Props, State> {
             }}>🛈</a>
         </div>
         <div className="navbar-search">
-          <input type="text" id="search_box" placeholder="search" />
+          <input type="text" id="search_box" placeholder="search"
+            ref={this.setupSearchInput.bind(this)}
+            onBlur={this.triggerSearch.bind(this)} />
         </div>
       </nav>
     );
