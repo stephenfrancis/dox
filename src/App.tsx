@@ -1,29 +1,29 @@
-/* globals window */
 
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import * as RootLog from "loglevel";
 import * as _ from "underscore";
-import Header from "./Header";
 import AdjustablePane from "./AdjustablePane";
+import Doc from "./Doc";
+import DocInfo from "./DocInfo";
+import SearchMatch from "./SearchMatch";
+import Header from "./Header";
 import Pane from "./Pane";
-import Location from "./Location";
-import * as IndexedDB from "lapis/IndexedDB";
-import * as IndexedDBAjaxStore from "lapis/IndexedDBAjaxStore";
+import Repo from "./Repo";
+import Utils from "./Utils";
 
-const Log = RootLog.getLogger("dox.App");
-const idb_version = 1; // integer version sequence
+/* globals window */
 
 RootLog.setLevel("debug");
+const Log = RootLog.getLogger("dox.App");
 
 
 interface Props {}
 
 interface State {
-  action: string;
-  location: Location;
-  ready: boolean;
-  store?: IndexedDBAjaxStore;
+  doc: Doc;
+  repo: Repo;
+  search_term?: string;
 }
 
 class App extends React.Component<Props, State> {
@@ -35,82 +35,73 @@ class App extends React.Component<Props, State> {
       Log.debug("window.onhashchange event");
       that.hashChange();
     };
+    this.state = this.makeRepoDocState();
+  }
 
-    this.state = {
-      action: "view",
-      location: new Location(window.location.href),
-      ready: false,
+
+  private hashChange() {
+    this.setState(this.makeRepoDocState());
+  }
+
+
+  private makeRepoDocState(): State {
+    const url_props = Utils.getFragmentPropsFromURL(window.location.href);
+    const same_repo = this.state && this.state.repo &&
+      this.state.repo.isSameRepo(url_props.repo_url, url_props.branch);
+    const state = {
+      doc: null,
+      search_term: null,
+      repo: same_repo ? this.state.repo :
+        new Repo(url_props.repo_url, url_props.branch),
     } as State;
-    this.setupStore(this.state.location.getBaseURL());
-  }
 
-
-  changeAction(action: string) {
-    this.setState({
-      action: action,
-    });
-  }
-
-
-  hashChange() {
-    const location = new Location(window.location.href);
-    const ready = (this.state.location && (this.state.location.getBaseURL() === location.getBaseURL()));
-    this.setState({
-      action: "view",
-      location: location,
-      ready: ready,
-    });
-    if (!ready) {
-      this.setupStore(location.getBaseURL());
+    if (url_props.search_term) {
+      state.search_term = decodeURIComponent(url_props.search_term);
+    } else if (url_props.path) {
+      state.doc = state.repo.getDoc(url_props.path || "/");
+      state.doc.getPromiseMarkdown()
+        .then(function () {
+          Log.debug(`setting window title: ${state.doc.getTitle()}`);
+          window.document.title = state.doc.getTitle();
+          window.scroll(0, 0);
+        });
     }
+    return state;
   }
 
 
   render() {
     var content;
-    if (!this.state.ready) {
-      content = (
-        <div className="message">Loading...</div>
-      );
-    } else if (this.state.action === "view") {
-      content = this.renderView();
-    } else if (this.state.action === "search") {
+    if (this.state.search_term) {
       content = this.renderSearch();
-    } else if (this.state.action === "info") {
-      content = this.renderInfo();
+    } else if (this.state.doc) {
+      content = this.renderView();
     } else {
-      content = (
-        <div className="message">Invalid action! {this.state.action}</div>
-      );
+      content = this.renderInfo();
     }
     return (
       <div>
-        <Header location={this.state.location} changeAction={this.changeAction.bind(this)} />
+        <Header repo={this.state.repo} doc={this.state.doc} />
         {content}
       </div>
     );
   }
 
-  renderView() {
+  private renderView() {
     var panes = [];
-    var parent_location = this.state.location.getParentLocation();
-    if (parent_location) {
+    var parent_doc = this.state.doc.getParentDoc();
+    if (parent_doc) {
       panes.push(
         <AdjustablePane key="left">
-          <Pane
-            store={this.state.store}
-            location={parent_location}
-            highlight_link={this.state.location}
+          <Pane doc={parent_doc}
+            highlight_link={this.state.doc}
           />
         </AdjustablePane>
       );
     }
     panes.push(
       <div id="main_pane" key="main">
-        <Pane
-          store={this.state.store}
-          location={this.state.location}
-        />
+        <Pane doc={this.state.doc} />
       </div>
     );
 
@@ -122,42 +113,28 @@ class App extends React.Component<Props, State> {
   }
 
 
-  renderSearch() {
+  private renderSearch() {
+    return (
+      <SearchMatch
+        repo={this.state.repo}
+        search_term={this.state.search_term} />
+    );
   }
 
 
-  renderInfo() {
-  }
-
-
-  setupStore(base_url: string) {
-    const that = this;
-    const new_state = {} as State;
-    const database = new IndexedDB(window.indexedDB, "dox", idb_version);
-
-    new_state.store = new IndexedDBAjaxStore(database, base_url,
-      { keyPath: "uuid", },
-      [
-        {
-          id: "by_title",
-          key_path: "payload.title",
-          additional: { unique: false, },
-        },
-      ], base_url);
-
-    database.start()
-      .then(function () {
-        Log.debug("database started setting App.state.ready = true, base_url = " + base_url);
-        new_state.ready = true;
-        that.setState(new_state);
-      })
-      .then(null, function (err) {
-        Log.error("App.start error: " + err);
-      });
+  private renderInfo() {
+    Log.debug("renderInfo()");
+    return (
+      <div style={{ padding: "20px", }}>
+        <div className="gen_block">Repo: <b>{this.state.repo.getRepoName()}</b></div>
+        <ul>
+          <DocInfo doc={this.state.repo.getRootDoc()} />
+        </ul>
+      </div>
+    );
   }
 
 }
-
 
 ReactDOM.render(<App />,
   window.document.getElementById("app_dynamic"));

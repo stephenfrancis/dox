@@ -7,7 +7,7 @@
     "build": "tsc; browserify src/App.js -t [ babelify --presets [ env react ] ] | uglifyjs --compress unused - > dox.min.js",
     "start": "node webserver.js",
     "test": "nodeunit test.js",
-    "watch": "watchify src/App.js -t [ babelify --presets [ env react ] ] -o dox.min.js --debug --verbose"
+    "watch": "watchify src/App.tsx -p [ tsify ] -t [ babelify --presets [ env react ] ] -o dox.min.js --debug --verbose"
   },
   "repository": {
     "type": "git",
@@ -36,6 +36,7 @@
     "q": ">= 1.4.1",
     "react": "^16.1.1",
     "react-dom": "^16.1.1",
+    "tsify": "^3.0.4",
     "typescript": "^2.7.1",
     "uglify-js": "^2.4.11",
     "viz.js": ">= 1.4.1",
