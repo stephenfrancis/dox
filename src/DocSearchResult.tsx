@@ -14,6 +14,7 @@ enum LoadState {
 interface Props {
   doc: Doc;
   search_term: string;
+  addFoundMatches?(more_matches: number): void;
 }
 
 interface State {
@@ -35,24 +36,36 @@ export default class DocSearchResult extends React.Component<Props, State> {
 
 
   componentWillReceiveProps(next_props) {
-    this.load(next_props);
+    if (next_props.doc !== this.props.doc || next_props.search_term !== this.props.search_term) {
+      this.load(next_props);
+    }
   }
 
 
   getMatches(content) {
     const lines = content.split(/\r\n|\n/);
-    const regex1 = new RegExp("(.*)(" + this.props.search_term + ")(.*)", "gi"); // danger? for the mo, treat query as a regex expr...;
+    const regex1 = new RegExp("(.*)(" + this.props.search_term + ")(.*)", "i"); // danger? for the mo, treat query as a regex expr...;
     // const regex2 = new RegExp(this.props.search_term, "gi");
     const out = [];
+    const that = this;
+    let match_count = 0;
     let j = 0;
 
     lines.forEach(function (line) {
       j += 1;
       const match = regex1.exec(line);
       if (match) {
-        out.push(<li key={"line" + j}>Line {j}: {match[1]}<span className="highlight">{match[2]}</span>{match[3]}</li>);
+        match_count += 1;
+        out.push(
+          <li key={"line" + j}>Line {j}: {match[1]}
+            <span className="highlight">{match[2]}</span>{match[3]}
+          </li>
+        );
       }
     });
+    if (this.props.addFoundMatches) {
+      this.props.addFoundMatches(match_count);
+    }
     return out;
   }
 
@@ -97,15 +110,20 @@ export default class DocSearchResult extends React.Component<Props, State> {
     const that = this;
     this.props.doc.getChildDocs().forEach(function (doc) {
       children.push(
-        <DocSearchResult doc={doc} key={doc.getName()} search_term={that.props.search_term} />);
+        <DocSearchResult
+          doc={doc}
+          key={doc.getName()}
+          search_term={that.props.search_term}
+          addFoundMatches={that.props.addFoundMatches}
+        />);
     });
     return (<div>{children}</div>);
   }
 
 
   renderFailed() {
-    return (<div className="gen_block error">failed to load:
-      {this.props.doc.getName()}, error: {this.load_err}</div>);
+    return (<div className="gen_block error">failed to load
+      : {this.props.doc.getName()}, error: {this.load_err}</div>);
   }
 
 

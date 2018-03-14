@@ -6,7 +6,7 @@ import * as _ from "underscore";
 import AdjustablePane from "./AdjustablePane";
 import Doc from "./Doc";
 import DocInfo from "./DocInfo";
-import DocSearchResult from "./DocSearchResult";
+import SearchMatch from "./SearchMatch";
 import Header from "./Header";
 import Pane from "./Pane";
 import Repo from "./Repo";
@@ -115,10 +115,9 @@ class App extends React.Component<Props, State> {
 
   private renderSearch() {
     return (
-      <div style={{ padding: "20px", }}>
-        <div className="gen_block">Search term: <b>{this.state.search_term}</b></div>
-        <DocSearchResult doc={this.state.repo.getRootDoc()} search_term={this.state.search_term} />
-      </div>
+      <SearchMatch
+        repo={this.state.repo}
+        search_term={this.state.search_term} />
     );
   }
 
