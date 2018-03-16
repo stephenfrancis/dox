@@ -1,9 +1,9 @@
 
+import * as Marked from "marked";
+import * as Path from "path";
 import * as RootLog from "loglevel";
 import * as Url from "url";
-import * as Path from "path";
 import * as Viz from "viz.js";
-import * as Marked from "marked";
 import Repo from "./Repo";
 import Utils from "./Utils";
 
@@ -160,18 +160,18 @@ export default class Doc {
     Log.debug("Doc.load() getting: " + file_url);
     this.promise = this.repo.getPromise()
       .then(function (store) {
-        return store.getDoc(file_url) as Promise<string>;
+        return store.getDoc(file_url);
       })
-      .then(function (content) {
-        var match = content.match(/^\n*#\s*(.*)[\r\n]/);
+      .then(function (doc: { id: string, content: string }): string {
+        var match = doc.content.match(/^\n*#\s*(.*)[\r\n]/);
         if (match) {
           Log.debug(`setting doc_title to: ${match[1]}`);
           that.doc_title = match[1];
         }
-        that.getDocLinks(content);
+        that.getDocLinks(doc.content);
         that.loaded = true;
-        return content;
-      });
+        return doc.content;
+      }) as Promise<string>;
   }
 
 
