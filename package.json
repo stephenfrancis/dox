@@ -4,7 +4,7 @@
   "description": "Local Browse Functionality on a Git Repo containing Markdown",
   "main": "index.js",
   "scripts": {
-    "build": "tsc; browserify src/App.js -t [ babelify --presets [ env react ] ] | uglifyjs --compress unused - > dox.min.js",
+    "build": "tsc; browserify src/App.js -t [ babelify --presets [ env react ] ] > dox.min.js",
     "start": "node webserver.js",
     "test": "nodeunit test.js",
     "watch": "watchify src/App.tsx -p [ tsify ] -t [ babelify --presets [ env react ] ] -o dox.min.js --debug --verbose"

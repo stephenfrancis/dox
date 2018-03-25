@@ -33,7 +33,7 @@ export default class Header extends React.Component<Props, State> {
       }
     }
     breadcrumbs.unshift(<li key="bc_repo">
-      <a href={this.props.repo.getHash()}>{this.props.repo.getRepoName()}</a></li>);
+      <a href={this.props.repo.getRootDoc().getHash()}>{this.props.repo.getRepoName()}</a></li>);
     return breadcrumbs;
   }
 
@@ -46,6 +46,9 @@ export default class Header extends React.Component<Props, State> {
   triggerSearch() {
     const search_term = this.search_input.value;
     this.search_input.value = "";
+    if (!search_term) {
+      return; // ignore empty search altogether
+    }
     // alert(`search for: '${search_term}'`);
     window.location.href = this.props.repo.getHash()
       + "&search_term=" + encodeURIComponent(search_term);

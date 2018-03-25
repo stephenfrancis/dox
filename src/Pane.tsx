@@ -1,8 +1,6 @@
 
 import * as React from "react";
 import * as RootLog from "loglevel";
-import * as Path from "path";
-import * as IndexedDBAjaxStore from "lapis/IndexedDBAjaxStore";
 import Doc from "./Doc";
 
 

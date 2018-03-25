@@ -3,7 +3,7 @@ import * as React from "react";
 import * as RootLog from "loglevel";
 import Doc from "./Doc";
 
-const Log = RootLog.getLogger("dox.DocInfo");
+const Log = RootLog.getLogger("dox.DocSearchResult");
 
 enum LoadState {
   Failed,

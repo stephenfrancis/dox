@@ -3,8 +3,8 @@ import * as RootLog from "loglevel";
 import * as Url from "url";
 import * as Path from "path";
 import Doc from "./Doc";
-import * as IndexedDB from "lapis/IndexedDB";
-import * as IndexedDBAjaxStore from "lapis/IndexedDBAjaxStore";
+import AjaxStore from "lapis/store/AjaxStore";
+import IndexedDB from "lapis/store/IndexedDB";
 
 const Log = RootLog.getLogger("dox.Repo");
 const idb_version = 1; // integer version sequence
@@ -13,19 +13,42 @@ const idb_version = 1; // integer version sequence
 export default class Repo {
   private base_url: string; // used to derive the URL of documents in the repo, being the repo_url + (if specified) branch
   private branch: string; // (optional) the published branch, added to base_url if specified
-  private promise: Promise<IndexedDBAjaxStore>;
+  private docs_failed: number;
+  private docs_loaded: number;
+  private docs_reffed: number;
+  private promise: Promise<AjaxStore>;
   private root_doc: Doc;
   private repo_name: string; // the derived name of the repo, from the last path element of repo_url
   private repo_url: string; // full URL of the hosted Git repo, the last path element being the repo name
 
 
   constructor (repo_url: string, branch?: string) {
-    this.repo_url = repo_url;
     this.branch = branch;
+    this.docs_failed = 0;
+    this.docs_loaded = 0;
+    this.docs_reffed = 0;
+    this.repo_url = repo_url;
     this.validateProps();
     this.root_doc = new Doc(this, "/", null);
     this.setupStore();
     Log.debug(`Repo created: ${this.base_url}`);
+  }
+
+
+  docFailed(): void {
+    this.docs_failed += 1;
+  }
+
+
+  docLoaded(): void {
+    this.docs_loaded += 1;
+    Log.info(`loaded++, docs reffed: ${this.docs_reffed}, loaded:${this.docs_loaded}`);
+  }
+
+
+  docReffed(): void {
+    this.docs_reffed += 1;
+    Log.info(`reffed++, docs reffed: ${this.docs_reffed}, loaded:${this.docs_loaded}`);
   }
 
 
@@ -59,7 +82,7 @@ export default class Repo {
   }
 
 
-  public getPromise(): Promise<IndexedDBAjaxStore> {
+  public getPromise(): Promise<AjaxStore> {
     return this.promise;
   }
 
@@ -82,7 +105,7 @@ export default class Repo {
   private setupStore() {
     const base_url = this.getBaseURL();
     const database = new IndexedDB(window.indexedDB, "dox", idb_version);
-    const store = new IndexedDBAjaxStore(database, base_url,
+    const ix_store = database.addStore(base_url,
       { keyPath: "uuid", },
       [
         {
@@ -90,8 +113,14 @@ export default class Repo {
           key_path: "payload.title",
           additional: { unique: false, },
         },
-      ], base_url);
-
+      ]);
+    const store = new AjaxStore(ix_store, base_url);
+    store.setResponseConverter(function (url: string, str: string): any {
+      return {
+        id: url.substr(base_url.length),
+        content: str,
+      };
+    });
     this.promise = database.start()
       .then(function () {
         return store;
