@@ -40,6 +40,7 @@ export default class Doc {
     this.path = path;
     this.doc_title = Path.basename(path);
     this.is_directory = (extname === "");
+    this.repo.docReffed();
   }
 
 
@@ -169,6 +170,7 @@ export default class Doc {
           that.doc_title = match[1];
         }
         that.getDocLinks(doc.content);
+        that.repo.docLoaded();
         that.loaded = true;
         return doc.content;
       }) as Promise<string>;

@@ -13,6 +13,9 @@ const idb_version = 1; // integer version sequence
 export default class Repo {
   private base_url: string; // used to derive the URL of documents in the repo, being the repo_url + (if specified) branch
   private branch: string; // (optional) the published branch, added to base_url if specified
+  private docs_failed: number;
+  private docs_loaded: number;
+  private docs_reffed: number;
   private promise: Promise<AjaxStore>;
   private root_doc: Doc;
   private repo_name: string; // the derived name of the repo, from the last path element of repo_url
@@ -20,12 +23,32 @@ export default class Repo {
 
 
   constructor (repo_url: string, branch?: string) {
-    this.repo_url = repo_url;
     this.branch = branch;
+    this.docs_failed = 0;
+    this.docs_loaded = 0;
+    this.docs_reffed = 0;
+    this.repo_url = repo_url;
     this.validateProps();
     this.root_doc = new Doc(this, "/", null);
     this.setupStore();
     Log.debug(`Repo created: ${this.base_url}`);
+  }
+
+
+  docFailed(): void {
+    this.docs_failed += 1;
+  }
+
+
+  docLoaded(): void {
+    this.docs_loaded += 1;
+    Log.info(`loaded++, docs reffed: ${this.docs_reffed}, loaded:${this.docs_loaded}`);
+  }
+
+
+  docReffed(): void {
+    this.docs_reffed += 1;
+    Log.info(`reffed++, docs reffed: ${this.docs_reffed}, loaded:${this.docs_loaded}`);
   }
 
 
