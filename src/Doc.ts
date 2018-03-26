@@ -194,8 +194,10 @@ export default class Doc {
     const that = this;
     return markdown.replace(/\[(.*)\]\((.*?)\)/g, function (match_all, match_1, match_2) {
       Log.debug("convertRelativePaths() match: " + match_1 + ", " + match_2);
-      if (that.isURLNeedingConversion(match_2)) {
+      if (that.isURLDirectoryOrMarkdown(match_2)) {
         return that.convertURL(match_2, match_1, highlight_link_path);
+      } else if (that.isURLNeedingConversion(match_2)) {
+        return that.convertURLOtherFile(match_2, match_1);
       }
       return "[" + match_1 + "](" + match_2 + ")";
     });
@@ -207,8 +209,10 @@ export default class Doc {
     for (let i = 0; i < digraph_blocks.length; i += 1) {
       digraph_blocks[i] = digraph_blocks[i].replace(/URL="(.*)"/g, function (match_all, match_1) {
         Log.debug(`convertRelativePathsInDigraphBlocks() match: ${match_1}`);
-        if (that.isURLNeedingConversion(match_1)) {
+        if (that.isURLDirectoryOrMarkdown(match_1)) {
           match_1 = that.getHash(that.getFullPathFromRelative(match_1));
+        } else if (that.isURLNeedingConversion(match_1)) {
+          match_1 = that.repo.getBaseURL() + that.getFullPathFromRelative(match_1);
         }
         return "URL=\"" + match_1 + "\"";
       });
@@ -219,6 +223,16 @@ export default class Doc {
   private isURLNeedingConversion(href: string): boolean {
     Log.trace(`convertRelativePath(${href}) tests:
       ${Utils.isProtocolRelativeURL(href)}
+      ${Path.isAbsolute(href)}`);
+
+    return (Utils.isProtocolRelativeURL(href)
+        && !Path.isAbsolute(href));
+  }
+
+
+  private isURLDirectoryOrMarkdown(href: string): boolean {
+    Log.trace(`convertRelativePath(${href}) tests:
+      ${Utils.isProtocolRelativeURL(href)}
       ${Path.isAbsolute(href)}
       ${Utils.appearsToBeAFile(href)}
       ${Utils.isMarkdownFile(href)}`);
@@ -227,6 +241,12 @@ export default class Doc {
         && !Path.isAbsolute(href)
         && (!Utils.appearsToBeAFile(href)
           || Utils.isMarkdownFile(href)));
+  }
+
+
+  private convertURLOtherFile(href: string, label: string): string {
+    var full_path = this.repo.getBaseURL() + this.getFullPathFromRelative(href);
+    return "[" + label + "](" + full_path + ")";
   }
 
 
@@ -303,7 +323,7 @@ export default class Doc {
     var i;
 
     function addLink(match) {
-      if (match && match.length > 1 && match[1] && that.isURLNeedingConversion(match[1])) {
+      if (match && match.length > 1 && match[1] && that.isURLDirectoryOrMarkdown(match[1])) {
         that.getRepo().getDoc(that.getFullPathFromRelative(match[1]));
       }
     }
