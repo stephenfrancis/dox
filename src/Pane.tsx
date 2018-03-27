@@ -38,6 +38,12 @@ export default class Pane extends React.Component<Props, State> {
           ready: true,
           content: content,
         } as State);
+      })
+      .then(null, function (err) {
+        that.setState({
+          ready: true,
+          content: "<p>Error occurred: " + err + "</p>",
+        } as State);
       });
   }
 
