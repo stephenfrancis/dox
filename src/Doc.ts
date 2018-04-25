@@ -1,9 +1,15 @@
 
-import * as Marked from "marked";
+import Unified from "unified";
+import RemarkParse from "remark-parse";
+import Remark2Rehype from "remark-rehype";
+import RehypeDoc from "rehype-document";
+import RehypeFormat from "rehype-format";
+import RehypeStringify from "rehype-stringify";
+import VfileReporter from "vfile-reporter";
+
 import * as Path from "path";
-import * as RootLog from "loglevel";
+import RootLog from "loglevel";
 import * as Url from "url";
-import * as Viz from "viz.js";
 import Repo from "./Repo";
 import Utils from "./Utils";
 
@@ -19,7 +25,6 @@ export default class Doc {
   private path: string;
   private promise: Promise<string>;
   private repo: Repo;
-
 
   constructor (repo: Repo, path: string, parent_doc: Doc) {
     this.child_docs = {};
@@ -177,15 +182,15 @@ export default class Doc {
   }
 
 
-  private convertDocumentContent(markdown: string, highlight_link_path?: string): string {
-    var html;
-    const digraph_blocks = [];
+  private convertDocumentContent(markdown: string, highlight_link_path?: string): Promise<string> {
     markdown = this.convertRelativePaths(markdown, highlight_link_path);
-    markdown = this.separateOutDigraphBlocks(markdown, digraph_blocks);
-    this.convertRelativePathsInDigraphBlocks(digraph_blocks, highlight_link_path);
-    html = this.convertMarkdownToHTML(markdown);
-    html = this.applyViz(html, digraph_blocks);
-    return html;
+    return Unified()
+      .use(RemarkParse)
+      .use(Remark2Rehype)
+      .use(RehypeDoc)
+      .use(RehypeFormat)
+      .use(RehypeStringify)
+      .process(markdown);
   }
 
 
@@ -203,7 +208,7 @@ export default class Doc {
     });
   }
 
-
+/*
   private convertRelativePathsInDigraphBlocks(digraph_blocks: Array<string>, highlight_link_path?: string) {
     const that = this;
     for (let i = 0; i < digraph_blocks.length; i += 1) {
@@ -218,7 +223,7 @@ export default class Doc {
       });
     }
   }
-
+*/
 
   private isURLNeedingConversion(href: string): boolean {
     Log.trace(`convertRelativePath(${href}) tests:
@@ -264,7 +269,7 @@ export default class Doc {
     return out;
   }
 
-
+/*
   private convertMarkdownToHTML(markdown: string): string {
     return Marked(markdown, { smartypants: true, });
   }
@@ -313,7 +318,7 @@ export default class Doc {
       }
     });
   }
-
+*/
 
   private getDocLinks(content) {
     var regex1 = /\]\((.*?)\)/g; // replace(regex, callback) doesn't seem to support capturing groups
