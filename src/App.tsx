@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import * as RootLog from "loglevel";
+import RootLog from "loglevel";
 import * as _ from "underscore";
 import AdjustablePane from "./AdjustablePane";
 import Doc from "./Doc";

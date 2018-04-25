@@ -1,5 +1,5 @@
 
-import * as RootLog from "loglevel";
+import RootLog from "loglevel";
 import * as Url from "url";
 import * as Path from "path";
 

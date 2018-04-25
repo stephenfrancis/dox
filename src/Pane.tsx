@@ -1,6 +1,6 @@
 
 import * as React from "react";
-import * as RootLog from "loglevel";
+import RootLog from "loglevel";
 import Doc from "./Doc";
 
 
@@ -60,7 +60,7 @@ export default class Pane extends React.Component<Props, State> {
       style.opacity = 0.5;
     }
     return (
-      <div style={{style}}>
+      <div style={style}>
         <p dangerouslySetInnerHTML={{
           __html: this.state.content,
         }}></p>

@@ -1,6 +1,6 @@
 
 import * as React from "react";
-import * as RootLog from "loglevel";
+import RootLog from "loglevel";
 import Doc from "./Doc";
 import Repo from "./Repo";
 
