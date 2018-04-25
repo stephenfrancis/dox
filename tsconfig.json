@@ -2,9 +2,14 @@
 {
   "compilerOptions": {
     "target": "es2015",
-    "module": "commonjs",
+    "module": "es6",
     "jsx": "react",
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "allowJs": true,
+    "lib" : [
+      "es2015",
+      "dom"
+    ]
   },
   "include": [
     "**/*.ts",
