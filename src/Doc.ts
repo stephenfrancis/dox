@@ -1,12 +1,12 @@
 
-import Unified from "unified";
-import RemarkParse from "remark-parse";
-import Remark2Rehype from "remark-rehype";
 import RehypeDoc from "rehype-document";
 import RehypeFormat from "rehype-format";
 import RehypeStringify from "rehype-stringify";
+// import RemarkMermaid from "remark-mermaid";
+import RemarkParse from "remark-parse";
+import Remark2Rehype from "remark-rehype";
+import Unified from "unified";
 import VfileReporter from "vfile-reporter";
-
 import * as Path from "path";
 import RootLog from "loglevel";
 import * as Url from "url";
@@ -186,6 +186,7 @@ export default class Doc {
     markdown = this.convertRelativePaths(markdown, highlight_link_path);
     return Unified()
       .use(RemarkParse)
+      // .use(RemarkMermaid)
       .use(Remark2Rehype)
       .use(RehypeDoc)
       .use(RehypeFormat)

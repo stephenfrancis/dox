@@ -17,6 +17,7 @@
   "author": "stephen.d.francis@gmail.com",
   "license": "Apache-2.0",
   "dependencies": {
+    "mermaid.cli": "^0.4.6"
   },
   "devDependencies": {
     "@types/loglevel": "^1.5.3",
