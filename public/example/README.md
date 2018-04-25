@@ -6,3 +6,4 @@
   * the screen width is wide enough
 
 * [Installation](installation.md)
+* [Diagrams](diagrams.md)
