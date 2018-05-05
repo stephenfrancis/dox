@@ -14,6 +14,10 @@ module.exports = {
       },
     ],
   },
+  node: {
+    child_process: "empty",
+    fs: "empty"
+  },
   output: {
     filename: "app.min.js",
     path: Path.resolve(__dirname, "../public")
