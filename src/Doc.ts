@@ -3,7 +3,7 @@ import * as Marked from "marked";
 import * as Path from "path";
 import * as RootLog from "loglevel";
 import * as Url from "url";
-import * as Viz from "viz.js";
+import "viz.js";
 import Repo from "./Repo";
 import Utils from "./Utils";
 
@@ -307,7 +307,9 @@ export default class Doc {
         if (!digraph_blocks[block_number]) {
           throw new Error("no digraph block found for " + block_number);
         }
-        return Viz(digraph_blocks[block_number], "svg");
+        return Viz(digraph_blocks[block_number], {
+          format: "svg"
+        });
       } catch (e) {
         return "<p><b>Error in Viz: " + e.toString() + "</b></p>";
       }
