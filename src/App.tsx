@@ -12,7 +12,6 @@ import Pane from "./Pane";
 import Repo from "./Repo";
 import Utils from "./Utils";
 
-/* globals window */
 
 RootLog.setLevel("debug");
 const Log = RootLog.getLogger("dox.App");

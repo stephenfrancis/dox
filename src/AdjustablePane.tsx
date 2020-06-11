@@ -1,8 +1,7 @@
 
 import * as React from "react";
-import * as RootLog from "loglevel";
+// import * as RootLog from "loglevel";
 
-/* globals window */
 
 interface Props {}
 

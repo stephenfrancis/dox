@@ -1,10 +1,8 @@
 
 import * as RootLog from "loglevel";
-import * as Url from "url";
-import * as Path from "path";
 import Doc from "./Doc";
-import AjaxStore from "lapis/store/AjaxStore";
-import IndexedDB from "lapis/store/IndexedDB";
+import AjaxStore from "ultistore/src/AjaxStore";
+import IndexedDB from "ultistore/src/IndexedDB";
 
 const Log = RootLog.getLogger("dox.Repo");
 const idb_version = 1; // integer version sequence

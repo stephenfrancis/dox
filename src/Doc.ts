@@ -2,8 +2,7 @@
 import * as Marked from "marked";
 import * as Path from "path";
 import * as RootLog from "loglevel";
-import * as Url from "url";
-import "viz.js";
+import Viz from "viz.js";
 import Repo from "./Repo";
 import Utils from "./Utils";
 

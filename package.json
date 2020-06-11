@@ -15,21 +15,22 @@
   },
   "author": "stephen.d.francis@gmail.com",
   "license": "Apache-2.0",
-  "dependencies": {},
+  "dependencies": {
+    "ultistore": "0.0.2"
+  },
   "devDependencies": {
-    "@types/node": "^9.6.52",
-    "@types/react": "^16.9.7",
-    "lapis": "git+https://github.com/stephenfrancis/lapis.git",
-    "loglevel": "^1.6.4",
-    "marked": "^0.7.0",
-    "react": "^16.10.2",
-    "react-dom": "^16.10.2",
-    "ts-loader": "^4.5.0",
-    "typescript": "^2.9.2",
+    "@types/node": "^14.0.10",
+    "@types/react": "^16.9.35",
+    "loglevel": "^1.6.8",
+    "marked": "^1.1.0",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "ts-loader": "^7.0.5",
+    "typescript": "^3.9.3",
     "viz.js": "^2.1.2",
-    "webpack": "^4.41.2",
-    "webpack-cli": "^2.1.5",
-    "webpack-dev-server": "^3.8.2",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.11.0",
     "webpack-merge": "^4.2.2"
   }
 }
