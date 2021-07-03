@@ -4,10 +4,10 @@
   "description": "Local Browse Functionality on a Git Repo containing Markdown",
   "main": "index.js",
   "scripts": {
-    "build": "npx webpack --mode=production --config config/webpack.prod.js",
-    "start": "npx webpack-dev-server --mode=development --config config/webpack.dev.js --open",
-    "test": "nodeunit test",
-    "watch": "npx webpack --mode=development --watch --config config/webpack.dev.js"
+    "build": "NODE_ENV=production ./node_modules/.bin/ts-node src/config/fuse.ts",
+    "clean": "rm -f -r .cache/* dist/*",
+    "start": "NODE_ENV=development ./node_modules/.bin/ts-node src/config/fuse.ts",
+    "test": "npx jest"
   },
   "repository": {
     "type": "git",
@@ -15,22 +15,40 @@
   },
   "author": "stephen.d.francis@gmail.com",
   "license": "Apache-2.0",
-  "dependencies": {
-    "ultistore": "0.0.2"
+  "jest": {
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js"
+    ],
+    "transform": {
+      "\\.(ts|tsx)$": "ts-jest"
+    },
+    "testRegex": "__tests__/.*\\.(ts|tsx)$",
+    "globals": {
+      "ts-jest": {
+        "diagnostics": {
+          "ignoreCodes": [
+            151001
+          ]
+        }
+      }
+    }
   },
-  "devDependencies": {
-    "@types/node": "^14.0.10",
-    "@types/react": "^16.9.35",
+  "dependencies": {
+    "@types/jest": "^26.0.23",
+    "@types/node": "^16.0.0",
+    "@types/react": "^17.0.13",
+    "fuse-box": "^4.0.1-next.7",
+    "jest": "^27.0.6",
     "loglevel": "^1.6.8",
-    "marked": "^1.1.0",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
-    "ts-loader": "^7.0.5",
-    "typescript": "^3.9.3",
-    "viz.js": "^2.1.2",
-    "webpack": "^4.43.0",
-    "webpack-cli": "^3.3.11",
-    "webpack-dev-server": "^3.11.0",
-    "webpack-merge": "^4.2.2"
+    "marked": "^2.1.3",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "ts-jest": "^27.0.3",
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.5",
+    "ultistore": "0.0.3",
+    "viz.js": "^2.1.2"
   }
 }

@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import * as RootLog from "loglevel";
@@ -12,10 +11,10 @@ import Pane from "./Pane";
 import Repo from "./Repo";
 import Utils from "./Utils";
 
+import "../public/dox.css";
 
 RootLog.setLevel("debug");
 const Log = RootLog.getLogger("dox.App");
-
 
 interface Props {}
 
@@ -37,37 +36,36 @@ class App extends React.Component<Props, State> {
     this.state = this.makeRepoDocState();
   }
 
-
   private hashChange() {
     this.setState(this.makeRepoDocState());
   }
 
-
   private makeRepoDocState(): State {
     const url_props = Utils.getFragmentPropsFromURL(window.location.href);
-    const same_repo = this.state && this.state.repo &&
+    const same_repo =
+      this.state &&
+      this.state.repo &&
       this.state.repo.isSameRepo(url_props.repo_url, url_props.branch);
     const state = {
       doc: null,
       search_term: null,
-      repo: same_repo ? this.state.repo :
-        new Repo(url_props.repo_url, url_props.branch),
+      repo: same_repo
+        ? this.state.repo
+        : new Repo(url_props.repo_url, url_props.branch),
     } as State;
 
     if (url_props.search_term) {
       state.search_term = decodeURIComponent(url_props.search_term);
     } else if (url_props.path) {
       state.doc = state.repo.getDoc(url_props.path || "/");
-      state.doc.getPromiseMarkdown()
-        .then(function () {
-          Log.debug(`setting window title: ${state.doc.getTitle()}`);
-          window.document.title = state.doc.getTitle();
-          window.scroll(0, 0);
-        });
+      state.doc.getPromiseMarkdown().then(function () {
+        Log.debug(`setting window title: ${state.doc.getTitle()}`);
+        window.document.title = state.doc.getTitle();
+        window.scroll(0, 0);
+      });
     }
     return state;
   }
-
 
   render() {
     var content;
@@ -92,9 +90,7 @@ class App extends React.Component<Props, State> {
     if (parent_doc) {
       panes.push(
         <AdjustablePane key="left">
-          <Pane doc={parent_doc}
-            highlight_link={this.state.doc}
-          />
+          <Pane doc={parent_doc} highlight_link={this.state.doc} />
         </AdjustablePane>
       );
     }
@@ -105,35 +101,34 @@ class App extends React.Component<Props, State> {
     );
 
     return (
-      <div id="container" style={{ display: "flex", flexDirection: "row", }}>
+      <div id="container" style={{ display: "flex", flexDirection: "row" }}>
         {panes}
       </div>
     );
   }
 
-
   private renderSearch() {
     return (
       <SearchMatch
         repo={this.state.repo}
-        search_term={this.state.search_term} />
+        search_term={this.state.search_term}
+      />
     );
   }
-
 
   private renderInfo() {
     Log.debug("renderInfo()");
     return (
-      <div style={{ padding: "20px", }}>
-        <div className="gen_block">Repo: <b>{this.state.repo.getRepoName()}</b></div>
+      <div style={{ padding: 20 }}>
+        <div className="gen_block">
+          Repo: <b>{this.state.repo.getRepoName()}</b>
+        </div>
         <ul>
           <DocInfo doc={this.state.repo.getRootDoc()} />
         </ul>
       </div>
     );
   }
-
 }
 
-ReactDOM.render(<App />,
-  window.document.getElementById("app_dynamic"));
+ReactDOM.render(<App />, window.document.getElementById("app_dynamic"));

@@ -1,4 +1,3 @@
-node_modules/**
-public/app.min.js
-public/app.min.js.map
-src/*.js
+.cache
+dist
+node_modules
