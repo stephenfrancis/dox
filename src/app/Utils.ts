@@ -1,28 +1,26 @@
-
 import * as RootLog from "loglevel";
 import * as Url from "url";
 import * as Path from "path";
 
-const Log = RootLog.getLogger("dox.Repo");
-
+const Log = RootLog.getLogger("app/Repo");
 
 export default class Utils {
-
-
   static appearsToBeAFile(path: string): boolean {
     return !!Path.extname(path);
   }
-
 
   static getFragmentPropsFromURL(href: string): any {
     const url = Url.parse(href);
     const props = this.getFragmentPropsFromHash(url.hash || "");
     if (!props.repo_url) {
-      props.repo_url = url.protocol + "//" + url.host + url.path.substr(0, url.path.lastIndexOf("/"));
+      props.repo_url =
+        url.protocol +
+        "//" +
+        url.host +
+        url.path.substr(0, url.path.lastIndexOf("/"));
     }
     return props;
   }
-
 
   static getFragmentPropsFromHash(hash: string): any {
     const out = {};
@@ -40,22 +38,14 @@ export default class Utils {
     return out;
   }
 
-
   static isMarkdownFile(path: string): boolean {
-    return (Path.extname(path) === ".md");
+    return Path.extname(path) === ".md";
   }
-
 
   static isProtocolRelativeURL(url: string): boolean {
-    const protocols = [
-      "ftp:",
-      "http:",
-      "https:",
-      "mailto:",
-    ];
+    const protocols = ["ftp:", "http:", "https:", "mailto:"];
     return !protocols.reduce(function (prev_val: boolean, curr_val: string) {
-      return (prev_val || url.indexOf(curr_val) === 0);
+      return prev_val || url.indexOf(curr_val) === 0;
     }, false);
   }
-
 }

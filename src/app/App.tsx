@@ -14,7 +14,7 @@ import Utils from "./Utils";
 import "../public/dox.css";
 
 RootLog.setLevel("debug");
-const Log = RootLog.getLogger("dox.App");
+const Log = RootLog.getLogger("app/App");
 
 interface Props {}
 
@@ -123,6 +123,7 @@ class App extends React.Component<Props, State> {
         <div className="gen_block">
           Repo: <b>{this.state.repo.getRepoName()}</b>
         </div>
+        <h3>Site map</h3>
         <ul>
           <DocInfo doc={this.state.repo.getRootDoc()} />
         </ul>

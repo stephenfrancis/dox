@@ -1,9 +1,8 @@
-
 import * as React from "react";
 import * as RootLog from "loglevel";
 import Doc from "./Doc";
 
-const Log = RootLog.getLogger("dox.DocSearchResult");
+const Log = RootLog.getLogger("app/DocSearchResult");
 
 enum LoadState {
   Failed,
@@ -34,13 +33,14 @@ export default class DocSearchResult extends React.Component<Props, State> {
     this.load(props);
   }
 
-
   componentWillReceiveProps(next_props) {
-    if (next_props.doc !== this.props.doc || next_props.search_term !== this.props.search_term) {
+    if (
+      next_props.doc !== this.props.doc ||
+      next_props.search_term !== this.props.search_term
+    ) {
       this.load(next_props);
     }
   }
-
 
   getMatches(content) {
     const lines = content.split(/\r\n|\n/);
@@ -57,8 +57,10 @@ export default class DocSearchResult extends React.Component<Props, State> {
       if (match) {
         match_count += 1;
         out.push(
-          <li key={"line" + j}>Line {j}: {match[1]}
-            <span className="highlight">{match[2]}</span>{match[3]}
+          <li key={"line" + j}>
+            Line {j}: {match[1]}
+            <span className="highlight">{match[2]}</span>
+            {match[3]}
           </li>
         );
       }
@@ -69,10 +71,10 @@ export default class DocSearchResult extends React.Component<Props, State> {
     return out;
   }
 
-
   load(props) {
     const that = this;
-    props.doc.getPromiseMarkdown()
+    props.doc
+      .getPromiseMarkdown()
       .then(function (content) {
         Log.debug("SearchMatch promise returned");
         that.matches = that.getMatches(content);
@@ -87,7 +89,6 @@ export default class DocSearchResult extends React.Component<Props, State> {
         } as State);
       });
   }
-
 
   onClick() {
     window.location.href = this.props.doc.getHash();
@@ -104,7 +105,6 @@ export default class DocSearchResult extends React.Component<Props, State> {
     }
   }
 
-
   renderChildren() {
     const children = [];
     const that = this;
@@ -115,42 +115,41 @@ export default class DocSearchResult extends React.Component<Props, State> {
           key={doc.getName()}
           search_term={that.props.search_term}
           addFoundMatches={that.props.addFoundMatches}
-        />);
+        />
+      );
     });
-    return (<div>{children}</div>);
+    return <div>{children}</div>;
   }
-
 
   renderFailed() {
-    return (<div className="gen_block error">failed to load
-      : {this.props.doc.getName()}, error: {this.load_err}</div>);
+    return (
+      <div className="gen_block error">
+        failed to load : {this.props.doc.getName()}, error: {this.load_err}
+      </div>
+    );
   }
-
 
   renderReady() {
     return (
       <div>
-        {(this.matches.length > 0) && this.renderResultBlock()}
+        {this.matches.length > 0 && this.renderResultBlock()}
         {this.props.doc.hasChildren() && this.renderChildren()}
       </div>
     );
   }
 
-
   renderResultBlock() {
     return (
       <div className="match_result" onClick={this.onClick.bind(this)}>
-        <div><b>{this.props.doc.getTitle()}</b></div>
-        <ul>
-          {this.matches}
-        </ul>
+        <div>
+          <b>{this.props.doc.getTitle()}</b>
+        </div>
+        <ul>{this.matches}</ul>
       </div>
     );
   }
 
-
   renderUnready() {
-    return (<div className="gen_block">loading: {this.props.doc.getName()}</div>);
+    return <div className="gen_block">loading: {this.props.doc.getName()}</div>;
   }
-
 }

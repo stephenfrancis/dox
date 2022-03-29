@@ -3,7 +3,7 @@ import * as RootLog from "loglevel";
 import Doc from "./Doc";
 import Repo from "./Repo";
 
-const Log = RootLog.getLogger("dox.Header");
+const Log = RootLog.getLogger("app/Header");
 
 interface Props {
   doc?: Doc;
@@ -74,35 +74,8 @@ export default class Header extends React.Component<Props, State> {
     var breadcrumbs = this.getBreadcrumbs();
     return (
       <nav className="navbar">
-        <div className="navbar-icon">
-          <a href="#">
-            <img src="../public/icon.svg" />
-          </a>
-        </div>
         <div className="navbar-breadcrumbs">
           <ul id="curr_location">{breadcrumbs}</ul>
-        </div>
-        <div
-          style={{
-            fontSize: "32px",
-            right: 0,
-            padding: "14px 10px",
-            backgroundColor: "#f5f5f5",
-          }}
-        >
-          <a
-            id="info"
-            type="button"
-            href={this.props.repo.getHash()}
-            title="view information about this repo, and highlight broken links"
-            style={{
-              color: "#000",
-              cursor: "pointer",
-              textDecoration: "none",
-            }}
-          >
-            ⓘ
-          </a>
         </div>
         <div className="navbar-search">
           <input
@@ -113,6 +86,16 @@ export default class Header extends React.Component<Props, State> {
             onBlur={this.triggerSearch.bind(this)}
             onKeyUp={this.handleSearchKeyUp.bind(this)}
           />
+        </div>
+        <div className="navbar-info">
+          <a
+            id="info"
+            type="button"
+            href={this.props.repo.getHash()}
+            title="view information about this repo, and highlight broken links"
+          >
+            ⓘ
+          </a>
         </div>
       </nav>
     );

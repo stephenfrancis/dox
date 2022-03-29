@@ -1,12 +1,10 @@
-
 import * as RootLog from "loglevel";
 import Doc from "./Doc";
-import AjaxStore from "ultistore/src/AjaxStore";
-import IndexedDB from "ultistore/src/IndexedDB";
+import AjaxStore from "../storage/AjaxStore";
+import IndexedDB from "../storage/IndexedDB";
 
-const Log = RootLog.getLogger("dox.Repo");
+const Log = RootLog.getLogger("app/Repo");
 const idb_version = 1; // integer version sequence
-
 
 export default class Repo {
   private base_url: string; // used to derive the URL of documents in the repo, being the repo_url + (if specified) branch
@@ -19,8 +17,7 @@ export default class Repo {
   private repo_name: string; // the derived name of the repo, from the last path element of repo_url
   private repo_url: string; // full URL of the hosted Git repo, the last path element being the repo name
 
-
-  constructor (repo_url: string, branch?: string) {
+  constructor(repo_url: string, branch?: string) {
     this.branch = branch;
     this.docs_failed = 0;
     this.docs_loaded = 0;
@@ -32,28 +29,27 @@ export default class Repo {
     Log.debug(`Repo created: ${this.base_url}`);
   }
 
-
   docFailed(): void {
     this.docs_failed += 1;
   }
 
-
   docLoaded(): void {
     this.docs_loaded += 1;
-    Log.info(`loaded++, docs reffed: ${this.docs_reffed}, loaded:${this.docs_loaded}`);
+    Log.info(
+      `loaded++, docs reffed: ${this.docs_reffed}, loaded:${this.docs_loaded}`
+    );
   }
-
 
   docReffed(): void {
     this.docs_reffed += 1;
-    Log.info(`reffed++, docs reffed: ${this.docs_reffed}, loaded:${this.docs_loaded}`);
+    Log.info(
+      `reffed++, docs reffed: ${this.docs_reffed}, loaded:${this.docs_loaded}`
+    );
   }
-
 
   public getBaseURL(): string {
     return this.base_url;
   }
-
 
   public getDoc(path: string) {
     const array = path.split("/");
@@ -70,7 +66,6 @@ export default class Repo {
     return doc;
   }
 
-
   public getHash(): string {
     var new_url = "#repo_url=" + this.repo_url;
     if (this.branch) {
@@ -79,39 +74,32 @@ export default class Repo {
     return new_url;
   }
 
-
   public getPromise(): Promise<AjaxStore> {
     return this.promise;
   }
-
 
   public getRepoName(): string {
     return this.repo_name;
   }
 
-
   public getRootDoc(): Doc {
     return this.root_doc;
   }
 
-
   public isSameRepo(repo_url: string, branch?: string) {
-    return (repo_url === this.repo_url && branch === this.branch);
+    return repo_url === this.repo_url && branch === this.branch;
   }
-
 
   private setupStore() {
     const base_url = this.getBaseURL();
     const database = new IndexedDB(window.indexedDB, "dox", idb_version);
-    const ix_store = database.addStore(base_url,
-      { keyPath: "uuid", },
-      [
-        {
-          id: "by_title",
-          key_path: "payload.title",
-          additional: { unique: false, },
-        },
-      ]);
+    const ix_store = database.addStore(base_url, { keyPath: "uuid" }, [
+      {
+        id: "by_title",
+        key_path: "payload.title",
+        additional: { unique: false },
+      },
+    ]);
     const store = new AjaxStore(ix_store, base_url);
     store.setResponseConverter(function (url: string, str: string): any {
       return {
@@ -119,12 +107,10 @@ export default class Repo {
         content: str,
       };
     });
-    this.promise = database.start()
-      .then(function () {
-        return store;
-      });
+    this.promise = database.start().then(function () {
+      return store;
+    });
   }
-
 
   private validateProps() {
     if (!this.repo_url) {
@@ -132,7 +118,7 @@ export default class Repo {
     }
     // strip any trailing slash
     if (this.repo_url.substr(-1) === "/") {
-      this.repo_url = this.repo_url.substr(0, (this.repo_url.length - 1));
+      this.repo_url = this.repo_url.substr(0, this.repo_url.length - 1);
     }
     this.base_url = this.repo_url + "/"; // append trailing slash!
     if (this.branch) {
@@ -140,5 +126,4 @@ export default class Repo {
     }
     this.repo_name = this.repo_url.substr(this.repo_url.lastIndexOf("/") + 1);
   }
-
 }

@@ -1,11 +1,8 @@
-
 import * as React from "react";
 import * as RootLog from "loglevel";
 import Doc from "./Doc";
 
-
-const Log = RootLog.getLogger("dox.Pane");
-
+const Log = RootLog.getLogger("app/Pane");
 
 interface Props {
   doc: Doc;
@@ -18,7 +15,6 @@ interface State {
 }
 
 export default class Pane extends React.Component<Props, State> {
-
   constructor(props) {
     super(props);
     this.state = {
@@ -28,11 +24,12 @@ export default class Pane extends React.Component<Props, State> {
     this.load(props);
   }
 
-
   private load(props: Props) {
     const that = this;
-    const highlight_link_path = props.highlight_link && props.highlight_link.getPath();
-    props.doc.getPromiseHTML(highlight_link_path)
+    const highlight_link_path =
+      props.highlight_link && props.highlight_link.getPath();
+    props.doc
+      .getPromiseHTML(highlight_link_path)
       .then(function (content) {
         that.setState({
           ready: true,
@@ -47,25 +44,26 @@ export default class Pane extends React.Component<Props, State> {
       });
   }
 
-
   componentWillReceiveProps(next_props) {
     this.load(next_props);
   }
 
-
   render() {
     const style: any = {};
-    Log.debug("Pane.render() " + this.props.doc.getPath() + ", " + this.state.ready);
+    Log.debug(
+      "Pane.render() " + this.props.doc.getPath() + ", " + this.state.ready
+    );
     if (!this.state.ready) {
       style.opacity = 0.5;
     }
     return (
       <div style={style}>
-        <p dangerouslySetInnerHTML={{
-          __html: this.state.content,
-        }}></p>
+        <p
+          dangerouslySetInnerHTML={{
+            __html: this.state.content,
+          }}
+        ></p>
       </div>
     );
   }
-
 }
