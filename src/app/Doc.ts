@@ -1,5 +1,5 @@
 import { marked } from "marked";
-import * as Path from "path";
+import * as Path from "path-browserify";
 import * as RootLog from "loglevel";
 import Viz from "viz.js";
 import Repo from "./Repo";

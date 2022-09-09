@@ -1,6 +1,6 @@
 {
   "name": "dox",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Local Browse Functionality on a Git Repo containing Markdown",
   "main": "index.js",
   "repository": {
@@ -10,10 +10,14 @@
   "author": "stephen.d.francis@gmail.com",
   "license": "Apache-2.0",
   "scripts": {
-    "build": "cd src && NODE_ENV=production rollup --config config/rollup.config.js",
-    "clean": "rm -f -r .cache/* dist/*",
+    "build": "NODE_ENV=production esbuild ./src/app/App.tsx --bundle --minify --sourcemap --platform=browser --define:global=window --outdir=./dist",
+    "clean": "rm -f -r dist/*",
+    "serve": "node ./src/Serve.js",
     "start": "cd src && NODE_ENV=development rollup --watch --config config/rollup.config.js",
     "test": "npx jest"
+  },
+  "bin": {
+    "serve-dox": "./src/Serve.js"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -38,26 +42,20 @@
   "dependencies": {
     "@types/node": "^17.0.23",
     "@types/react": "^17.0.43",
+    "koa": "^2.13.4",
+    "koa-send": "^5.0.1",
     "loglevel": "^1.8.0",
     "marked": "^4.0.12",
+    "path-browserify": "^1.0.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "underscore": "^1.13.2",
     "viz.js": "^2.1.2"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^21.0.3",
-    "@rollup/plugin-node-resolve": "^13.1.3",
-    "@rollup/plugin-replace": "^4.0.0",
-    "@rollup/plugin-typescript": "^8.3.1",
     "@types/jest": "^27.4.1",
+    "esbuild": "^0.15.7",
     "jest": "^27.5.1",
-    "rollup": "^2.70.1",
-    "rollup-plugin-copy": "^3.4.0",
-    "rollup-plugin-css-only": "^3.1.0",
-    "rollup-plugin-node-builtins": "^2.1.2",
-    "rollup-plugin-node-globals": "^1.4.0",
-    "rollup-plugin-serve": "^1.1.0",
     "ts-jest": "^27.1.4",
     "ts-node": "^10.7.0",
     "tslib": "^2.3.1",

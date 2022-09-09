@@ -1,23 +1,22 @@
 import * as RootLog from "loglevel";
-import * as Url from "url";
-import * as Path from "path";
+import * as Path from "path-browserify";
 
 const Log = RootLog.getLogger("app/Repo");
 
 export default class Utils {
   static appearsToBeAFile(path: string): boolean {
-    return !!Path.extname(path);
+    return !!Path.extname(path); // has an extension
   }
 
   static getFragmentPropsFromURL(href: string): any {
-    const url = Url.parse(href);
+    const url = new URL(href);
     const props = this.getFragmentPropsFromHash(url.hash || "");
     if (!props.repo_url) {
       props.repo_url =
         url.protocol +
         "//" +
         url.host +
-        url.path.substr(0, url.path.lastIndexOf("/"));
+        url.pathname.substring(0, url.pathname.lastIndexOf("/"));
     }
     return props;
   }
@@ -25,7 +24,7 @@ export default class Utils {
   static getFragmentPropsFromHash(hash: string): any {
     const out = {};
     if (hash) {
-      hash = hash.substr(1);
+      hash = hash.substring(1);
     } else {
       hash = "";
     }
