@@ -1,6 +1,6 @@
 {
   "name": "@stephen.francis/dox",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Local Browse Functionality on a Git Repo containing Markdown",
   "main": "index.js",
   "repository": {
@@ -26,18 +26,18 @@
       "js"
     ],
     "transform": {
-      "\\.(ts|tsx)$": "ts-jest"
-    },
-    "testRegex": "__tests__/.*\\.(ts|tsx)$",
-    "globals": {
-      "ts-jest": {
-        "diagnostics": {
-          "ignoreCodes": [
-            151001
-          ]
+      "\\.(ts|tsx)$": [
+        "ts-jest",
+        {
+          "diagnostics": {
+            "ignoreCodes": [
+              151001
+            ]
+          }
         }
-      }
-    }
+      ]
+    },
+    "testRegex": "__tests__/.*\\.(ts|tsx)$"
   },
   "dependencies": {
     "@types/node": "^18.7.18",

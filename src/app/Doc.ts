@@ -1,7 +1,7 @@
 import { marked } from "marked";
 import * as Path from "path-browserify";
 import * as RootLog from "loglevel";
-import Viz from "viz.js";
+// import Viz from "viz.js";
 import Repo from "./Repo";
 import Utils from "./Utils";
 
@@ -174,7 +174,7 @@ export default class Doc {
       highlight_link_path
     );
     html = this.convertMarkdownToHTML(markdown);
-    html = this.applyViz(html, digraph_blocks);
+    // html = this.applyViz(html, digraph_blocks);
     return html;
   }
 
@@ -304,24 +304,24 @@ export default class Doc {
     return out;
   }
 
-  private applyViz(html: string, digraph_blocks: Array<string>): string {
-    const that = this;
-    Log.trace("applyViz() : " + digraph_blocks.length);
-    return html.replace(/¬¬DIGRAPH<(\d+)>¬¬/, function (match, match_1) {
-      const block_number = parseInt(match_1);
-      Log.trace("block_number: " + block_number);
-      try {
-        if (!digraph_blocks[block_number]) {
-          throw new Error("no digraph block found for " + block_number);
-        }
-        return Viz(digraph_blocks[block_number], {
-          format: "svg",
-        });
-      } catch (e) {
-        return "<p><b>Error in Viz: " + e.toString() + "</b></p>";
-      }
-    });
-  }
+  // private applyViz(html: string, digraph_blocks: Array<string>): string {
+  //   const that = this;
+  //   Log.trace("applyViz() : " + digraph_blocks.length);
+  //   return html.replace(/¬¬DIGRAPH<(\d+)>¬¬/, function (match, match_1) {
+  //     const block_number = parseInt(match_1);
+  //     Log.trace("block_number: " + block_number);
+  //     try {
+  //       if (!digraph_blocks[block_number]) {
+  //         throw new Error("no digraph block found for " + block_number);
+  //       }
+  //       return Viz(digraph_blocks[block_number], {
+  //         format: "svg",
+  //       });
+  //     } catch (e) {
+  //       return "<p><b>Error in Viz: " + e.toString() + "</b></p>";
+  //     }
+  //   });
+  // }
 
   private getDocLinks(content) {
     var regex1 = /\]\((.*?)\)/g; // replace(regex, callback) doesn't seem to support capturing groups
