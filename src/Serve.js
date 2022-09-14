@@ -6,7 +6,7 @@ const app = new Koa();
 const index = process.cwd().lastIndexOf("/");
 const localDirName = process.cwd().substring(index + 1);
 const isLocal = localDirName === "dox";
-const appFilesRoot = isLocal ? "/" : "/node_modules/dox/";
+const appFilesRoot = isLocal ? "/" : "/node_modules/@stephen.francis/dox/";
 
 console.log(
   `cwd: ${process.cwd()}, isLocal? ${isLocal}, appFilesRoot: ${appFilesRoot}`
