@@ -1,6 +1,6 @@
 {
   "name": "@stephen.francis/dox",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Local Browse Functionality on a Git Repo containing Markdown",
   "main": "index.js",
   "repository": {
