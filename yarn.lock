@@ -703,6 +703,33 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@stephen.francis/dox@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@stephen.francis/dox@workspace:."
+  dependencies:
+    "@types/jest": ^27.4.1
+    "@types/node": ^17.0.23
+    "@types/react": ^17.0.43
+    esbuild: ^0.15.7
+    jest: ^27.5.1
+    koa: ^2.13.4
+    koa-send: ^5.0.1
+    loglevel: ^1.8.0
+    marked: ^4.0.12
+    path-browserify: ^1.0.1
+    react: ^17.0.2
+    react-dom: ^17.0.2
+    ts-jest: ^27.1.4
+    ts-node: ^10.7.0
+    tslib: ^2.3.1
+    typescript: ^4.6.3
+    underscore: ^1.13.2
+    viz.js: ^2.1.2
+  bin:
+    serve-dox: ./src/Serve.js
+  languageName: unknown
+  linkType: soft
+
 "@tootallnate/once@npm:1":
   version: 1.1.2
   resolution: "@tootallnate/once@npm:1.1.2"
@@ -1662,33 +1689,6 @@ __metadata:
   checksum: d638e9cb05c52999f1b2eb87c374b03311ea5b1d69c2f875bc92da73e17db60c12142b45c950228642ff7f845c536b65305483350d080df59003a653da80b691
   languageName: node
   linkType: hard
-
-"dox@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "dox@workspace:."
-  dependencies:
-    "@types/jest": ^27.4.1
-    "@types/node": ^17.0.23
-    "@types/react": ^17.0.43
-    esbuild: ^0.15.7
-    jest: ^27.5.1
-    koa: ^2.13.4
-    koa-send: ^5.0.1
-    loglevel: ^1.8.0
-    marked: ^4.0.12
-    path-browserify: ^1.0.1
-    react: ^17.0.2
-    react-dom: ^17.0.2
-    ts-jest: ^27.1.4
-    ts-node: ^10.7.0
-    tslib: ^2.3.1
-    typescript: ^4.6.3
-    underscore: ^1.13.2
-    viz.js: ^2.1.2
-  bin:
-    serve-dox: ./src/Serve.js
-  languageName: unknown
-  linkType: soft
 
 "ee-first@npm:1.1.1":
   version: 1.1.1

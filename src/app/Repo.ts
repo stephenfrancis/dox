@@ -117,13 +117,15 @@ export default class Repo {
       throw new Error("'repo_url' must be defined");
     }
     // strip any trailing slash
-    if (this.repo_url.substr(-1) === "/") {
-      this.repo_url = this.repo_url.substr(0, this.repo_url.length - 1);
+    if (this.repo_url.substring(-1) === "/") {
+      this.repo_url = this.repo_url.substring(0, this.repo_url.length - 1);
     }
     this.base_url = this.repo_url + "/"; // append trailing slash!
     if (this.branch) {
       this.base_url += this.branch + "/";
     }
-    this.repo_name = this.repo_url.substr(this.repo_url.lastIndexOf("/") + 1);
+    this.repo_name = this.repo_url.substring(
+      this.repo_url.lastIndexOf("/") + 1
+    );
   }
 }

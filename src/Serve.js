@@ -12,10 +12,17 @@ console.log(
   `cwd: ${process.cwd()}, isLocal? ${isLocal}, appFilesRoot: ${appFilesRoot}`
 );
 
-const koaSendOpts = {
-  maxAge: 365 * 24 * 60 * 60 * 1000,
+const koaBaseOpts = {
   root: process.cwd(),
 };
+
+const koaCachedOpts = Object.assign({}, koaBaseOpts, {
+  maxAge: 365 * 24 * 60 * 60 * 1000,
+});
+
+const koaNonCachedOpts = Object.assign({}, koaBaseOpts, {
+  maxAge: 0,
+});
 
 app.use(async (ctx, next) => {
   const pathElems = ctx.path.split("/");
@@ -28,16 +35,16 @@ app.use(async (ctx, next) => {
   // );
   if (wantingHTML) {
     // SPA: serve the main HTML file at ALL navigation URLs if looking for HTML
-    await send(ctx, `${appFilesRoot}src/public/index.html`, koaSendOpts);
+    await send(ctx, `${appFilesRoot}src/public/index.html`, koaCachedOpts);
   } else if (lastDir === "dox-built") {
     // built app files
-    await send(ctx, `${appFilesRoot}dist/${filename}`, koaSendOpts);
+    await send(ctx, `${appFilesRoot}dist/${filename}`, koaCachedOpts);
   } else if (lastDir === "dox-static" || filename.indexOf("favicon") > -1) {
     // static app files
-    await send(ctx, `${appFilesRoot}src/public/${filename}`, koaSendOpts);
+    await send(ctx, `${appFilesRoot}src/public/${filename}`, koaCachedOpts);
   } else {
     // content files
-    await send(ctx, tweakedPath, koaSendOpts);
+    await send(ctx, tweakedPath, koaNonCachedOpts);
   }
 });
 
