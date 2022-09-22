@@ -1,7 +1,7 @@
-import * as RootLog from "loglevel";
+// import Debug from "debug";
 import * as Path from "path-browserify";
 
-const Log = RootLog.getLogger("app/Repo");
+// const debug = Debug("app/Utils");
 
 export default class Utils {
   static appearsToBeAFile(path: string): boolean {

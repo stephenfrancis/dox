@@ -1,69 +1,56 @@
+import Debug from "debug";
 import * as React from "react";
-import * as RootLog from "loglevel";
 import Doc from "./Doc";
 
-const Log = RootLog.getLogger("app/Pane");
+const debug = Debug("app/Pane");
 
 interface Props {
   doc: Doc;
   highlight_link?: Doc;
 }
 
-interface State {
-  ready: boolean;
-  content: string;
-}
+export const Pane: React.FC<Props> = (props) => {
+  const [loadError, setLoadError] = React.useState<string>(undefined);
+  const [content, setContent] = React.useState<string>();
 
-export default class Pane extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
-    this.state = {
-      ready: false,
-      content: "Loading...",
-    } as State;
-    this.load(props);
-  }
-
-  private load(props: Props) {
-    const that = this;
+  const load = () => {
     const highlight_link_path =
       props.highlight_link && props.highlight_link.getPath();
     props.doc
       .getPromiseHTML(highlight_link_path)
-      .then(function (content) {
-        that.setState({
-          ready: true,
-          content: content,
-        } as State);
+      .then((content) => {
+        setLoadError(null);
+        setContent(content);
       })
-      .then(null, function (err) {
-        that.setState({
-          ready: true,
-          content: "<p>Error occurred: " + err + "</p>",
-        } as State);
+      .catch((err) => {
+        setLoadError(String(err));
+        setContent(null);
       });
-  }
+  };
 
-  componentWillReceiveProps(next_props) {
-    this.load(next_props);
-  }
+  React.useEffect(() => {
+    setLoadError(undefined);
+    load();
+  }, [props.doc, props.highlight_link]);
 
-  render() {
-    const style: any = {};
-    Log.debug(
-      "Pane.render() " + this.props.doc.getPath() + ", " + this.state.ready
-    );
-    if (!this.state.ready) {
-      style.opacity = 0.5;
-    }
-    return (
-      <div style={style}>
-        <p
-          dangerouslySetInnerHTML={{
-            __html: this.state.content,
-          }}
-        ></p>
-      </div>
-    );
+  const style: any = {};
+  debug("Pane.render() " + props.doc.getPath() + ", " + loadError);
+  if (loadError !== null) {
+    style.opacity = 0.5;
   }
-}
+  const html =
+    loadError === undefined
+      ? "Loading..."
+      : loadError === null
+      ? content
+      : "<p>Error occurred: " + loadError + "</p>";
+  return (
+    <div style={style}>
+      <p
+        dangerouslySetInnerHTML={{
+          __html: html,
+        }}
+      ></p>
+    </div>
+  );
+};

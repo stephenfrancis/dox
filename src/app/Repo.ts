@@ -1,9 +1,9 @@
-import * as RootLog from "loglevel";
+import Debug from "debug";
 import Doc from "./Doc";
 import AjaxStore from "../storage/AjaxStore";
 import IndexedDB from "../storage/IndexedDB";
 
-const Log = RootLog.getLogger("app/Repo");
+const debug = Debug("app/Repo");
 const idb_version = 1; // integer version sequence
 
 export default class Repo {
@@ -26,7 +26,7 @@ export default class Repo {
     this.validateProps();
     this.root_doc = new Doc(this, "/", null);
     this.setupStore();
-    Log.debug(`Repo created: ${this.base_url}`);
+    debug(`Repo created: ${this.base_url}`);
   }
 
   docFailed(): void {
@@ -35,14 +35,14 @@ export default class Repo {
 
   docLoaded(): void {
     this.docs_loaded += 1;
-    Log.info(
+    debug(
       `loaded++, docs reffed: ${this.docs_reffed}, loaded:${this.docs_loaded}`
     );
   }
 
   docReffed(): void {
     this.docs_reffed += 1;
-    Log.info(
+    debug(
       `reffed++, docs reffed: ${this.docs_reffed}, loaded:${this.docs_loaded}`
     );
   }
@@ -103,13 +103,11 @@ export default class Repo {
     const store = new AjaxStore(ix_store, base_url);
     store.setResponseConverter(function (url: string, str: string): any {
       return {
-        id: url.substr(base_url.length),
+        id: url.substring(base_url.length),
         content: str,
       };
     });
-    this.promise = database.start().then(function () {
-      return store;
-    });
+    this.promise = database.start().then(() => store);
   }
 
   private validateProps() {

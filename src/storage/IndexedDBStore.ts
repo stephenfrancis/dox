@@ -1,8 +1,8 @@
-import * as RootLog from "loglevel";
+import Debug from "debug";
 import Store from "./Store";
 import StoredObject from "./StoredObject";
 
-const Log = RootLog.getLogger("storage/IndexedDBStore");
+const debug = Debug("storage/IndexedDBStore");
 
 export default class IndexedDBStore implements Store {
   private constructor_funct: { new (arg: Object): Object };
@@ -28,10 +28,10 @@ export default class IndexedDBStore implements Store {
   public setConstructor(constructor_funct) {
     var obj = new constructor_funct({ id: 1 }); // test the constructor!
     if (typeof obj.pushObjectToStore === "function") {
-      Log.info("%s implements pushObjectToStore()", constructor_funct.name);
+      debug("%s implements pushObjectToStore()", constructor_funct.name);
     }
     if (typeof obj.pullObjectFromStore === "function") {
-      Log.info("%s implements pullObjectFromStore()", constructor_funct.name);
+      debug("%s implements pullObjectFromStore()", constructor_funct.name);
     }
     this.constructor_funct = constructor_funct;
   }
@@ -43,14 +43,14 @@ export default class IndexedDBStore implements Store {
     var i;
     this.throwIfStarted();
     store = db.createObjectStore(this.store_id, this.create_properties);
-    Log.debug("created store");
+    debug("created store");
     for (i = 0; this.indexes && i < this.indexes.length; i += 1) {
       store.createIndex(
         this.indexes[i].id,
         this.indexes[i].key_path,
         this.indexes[i].additional
       );
-      Log.debug(
+      debug(
         "created index: %s with key_path: %s",
         this.indexes[i].id,
         this.indexes[i].key_path
@@ -93,7 +93,7 @@ export default class IndexedDBStore implements Store {
     var i;
     for (i = from_version; i < to_version; i += 1) {
       if (this.upgrade_functions[i]) {
-        Log.debug(
+        debug(
           "calling upgrade function for store: " +
             this.store_id +
             ", from_version: " +
@@ -140,11 +140,11 @@ export default class IndexedDBStore implements Store {
 
       store.put(obj);
       tx.oncomplete = function () {
-        Log.debug("doc saved: %s", obj[that.create_properties.keyPath]);
+        debug("doc saved: %s", obj[that.create_properties.keyPath]);
         resolve(obj);
       };
       tx.onerror = function () {
-        Log.error("Store.save() error: %o", tx.error);
+        debug("Store.save() error: %o", tx.error);
         reject(tx.error);
       };
     });
@@ -162,7 +162,7 @@ export default class IndexedDBStore implements Store {
       request.onsuccess = function () {
         var obj = request.result;
         if (obj === undefined) {
-          Log.debug("object not found: %s", id);
+          debug("object not found: %s", id);
           reject("object not found: " + id);
         } else {
           if (that.constructor_funct) {
@@ -171,12 +171,12 @@ export default class IndexedDBStore implements Store {
               obj.pullObjectFromStore();
             }
           }
-          Log.debug("object loaded: %s", id);
+          debug("object loaded: %s", id);
           resolve(obj);
         }
       };
       request.onerror = function () {
-        Log.debug(tx.error);
+        debug(tx.error);
         reject(tx.error);
       };
     });
@@ -192,11 +192,11 @@ export default class IndexedDBStore implements Store {
       var request = store.delete(id);
 
       request.onsuccess = function () {
-        Log.trace("object deleted: %s", id);
+        // debug("object deleted: %s", id);
         resolve(id);
       };
       request.onerror = function () {
-        Log.debug(tx.error);
+        debug(tx.error);
         reject(tx.error);
       };
     });
@@ -214,13 +214,13 @@ export default class IndexedDBStore implements Store {
 
       request.onsuccess = function () {
         var cursor = request.result;
-        Log.debug("Store.getAll() onsuccess; cursor? " + cursor);
+        debug("Store.getAll() onsuccess; cursor? " + cursor);
         if (cursor) {
           // Called for each matching record.
           results.push(cursor.value);
           cursor.continue();
         } else {
-          Log.debug("getAll() %d results", results.length);
+          debug("getAll() %d results", results.length);
           if (that.constructor_funct) {
             results.forEach(function (obj, i) {
               results[i] = new that.constructor_funct(obj);
@@ -230,7 +230,7 @@ export default class IndexedDBStore implements Store {
         }
       };
       request.onerror = function () {
-        Log.error(tx.error);
+        debug(tx.error);
         reject(tx.error);
       };
     });
@@ -246,11 +246,11 @@ export default class IndexedDBStore implements Store {
       var request = store.clear();
 
       request.onsuccess = function () {
-        Log.trace("deleteAll() succeeded");
+        // debug("deleteAll() succeeded");
         resolve();
       };
       request.onerror = function () {
-        Log.error(tx.error);
+        debug(tx.error);
         reject(tx.error);
       };
     });

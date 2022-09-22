@@ -1,135 +1,110 @@
+import Debug from "debug";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import * as RootLog from "loglevel";
 import * as _ from "underscore";
-import AdjustablePane from "./AdjustablePane";
+import { AdjustablePane } from "./AdjustablePane";
 import Doc from "./Doc";
-import DocInfo from "./DocInfo";
-import SearchMatch from "./SearchMatch";
-import Header from "./Header";
-import Pane from "./Pane";
+import { DocInfo } from "./DocInfo";
+import { SearchMatch } from "./SearchMatch";
+import { Header } from "./Header";
+import { Pane } from "./Pane";
 import Repo from "./Repo";
 import Utils from "./Utils";
 
 import "../public/dox.css";
 
-RootLog.setLevel("debug");
-const Log = RootLog.getLogger("app/App");
+const debug = Debug("app/App");
 
 interface Props {}
 
-interface State {
-  doc: Doc;
-  repo: Repo;
-  search_term?: string;
-}
+const App: React.FC<Props> = () => {
+  const [doc, setDoc] = React.useState<Doc>(null);
+  const [repo, setRepo] = React.useState<Repo>(null);
+  const [searchTerm, setSearchTerm] = React.useState<string>(null);
+  const setStateFromHash = React.useRef<() => void>(null);
 
-class App extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
-    const that = this;
-
-    window.onhashchange = function () {
-      Log.debug("window.onhashchange event");
-      that.hashChange();
-    };
-    this.state = this.makeRepoDocState();
-  }
-
-  private hashChange() {
-    this.setState(this.makeRepoDocState());
-  }
-
-  private makeRepoDocState(): State {
-    const url_props = Utils.getFragmentPropsFromURL(window.location.href);
-    const same_repo =
-      this.state &&
-      this.state.repo &&
-      this.state.repo.isSameRepo(url_props.repo_url, url_props.branch);
-    const state = {
-      doc: null,
-      search_term: null,
-      repo: same_repo
-        ? this.state.repo
-        : new Repo(url_props.repo_url, url_props.branch),
-    } as State;
-
-    if (url_props.search_term) {
-      state.search_term = decodeURIComponent(url_props.search_term);
-    } else if (url_props.path) {
-      state.doc = state.repo.getDoc(url_props.path || "/");
-      state.doc.getPromiseMarkdown().then(function () {
-        Log.debug(`setting window title: ${state.doc.getTitle()}`);
-        window.document.title = state.doc.getTitle();
+  setStateFromHash.current = () => {
+    debug(`setStateFromHash`);
+    const urlProps = Utils.getFragmentPropsFromURL(window.location.href);
+    const sameRepo =
+      repo && repo.isSameRepo(urlProps.repo_url, urlProps.branch);
+    const newRepo = sameRepo
+      ? repo
+      : new Repo(urlProps.repo_url, urlProps.branch);
+    debug(
+      `sameRepo? ${sameRepo} ${repo && repo.getHash()}, ${urlProps.repo_url}, ${
+        urlProps.branch
+      }`
+    );
+    if (!sameRepo) {
+      setRepo(newRepo);
+    }
+    setDoc(null);
+    setSearchTerm(null);
+    if (urlProps.search_term) {
+      setSearchTerm(decodeURIComponent(urlProps.search_term));
+    } else if (urlProps.path) {
+      const doc = newRepo.getDoc(urlProps.path || "/");
+      doc.getPromiseMarkdown().then(() => {
+        debug(`setting window title: ${doc.getTitle()}`);
+        window.document.title = doc.getTitle();
         window.scroll(0, 0);
       });
+      setDoc(doc);
     }
-    return state;
-  }
+  };
 
-  render() {
-    var content;
-    if (this.state.search_term) {
-      content = this.renderSearch();
-    } else if (this.state.doc) {
-      content = this.renderView();
-    } else {
-      content = this.renderInfo();
-    }
-    return (
-      <div>
-        <Header repo={this.state.repo} doc={this.state.doc} />
-        {content}
-      </div>
-    );
-  }
+  React.useEffect(() => {
+    window.onhashchange = function () {
+      debug("window.onhashchange event");
+      setStateFromHash.current();
+    };
+    setStateFromHash.current();
+  }, []);
 
-  private renderView() {
-    var panes = [];
-    var parent_doc = this.state.doc.getParentDoc();
-    if (parent_doc) {
-      panes.push(
-        <AdjustablePane key="left">
-          <Pane doc={parent_doc} highlight_link={this.state.doc} />
-        </AdjustablePane>
-      );
-    }
-    panes.push(
-      <div id="main_pane" key="main">
-        <Pane doc={this.state.doc} />
-      </div>
-    );
-
+  const renderView = () => {
+    var parentDoc = doc.getParentDoc();
     return (
       <div id="container" style={{ display: "flex", flexDirection: "row" }}>
-        {panes}
+        {parentDoc && (
+          <AdjustablePane>
+            <Pane doc={parentDoc} highlight_link={doc} />
+          </AdjustablePane>
+        )}
+        <div id="main_pane">
+          <Pane doc={doc} />
+        </div>
       </div>
     );
-  }
+  };
 
-  private renderSearch() {
+  const renderInfo = () => {
+    debug("renderInfo()");
     return (
-      <SearchMatch
-        repo={this.state.repo}
-        search_term={this.state.search_term}
-      />
-    );
-  }
-
-  private renderInfo() {
-    Log.debug("renderInfo()");
-    return (
-      <div style={{ padding: 20 }}>
-        <div className="gen_block">
-          Repo: <b>{this.state.repo.getRepoName()}</b>
-        </div>
+      <div
+        style={{
+          paddingTop: 50,
+          paddingLeft: 20,
+          paddingRight: 20,
+          paddingBottom: 20,
+        }}
+      >
         <h3>Site map</h3>
         <ul>
-          <DocInfo doc={this.state.repo.getRootDoc()} />
+          <DocInfo doc={repo.getRootDoc()} />
         </ul>
       </div>
     );
-  }
-}
+  };
+
+  return (
+    <div>
+      {!!repo && <Header repo={repo} doc={doc} />}
+      {searchTerm && <SearchMatch repo={repo} search_term={searchTerm} />}
+      {!searchTerm && doc && renderView()}
+      {!searchTerm && !doc && repo && renderInfo()}
+    </div>
+  );
+};
 
 ReactDOM.render(<App />, window.document.getElementById("app_dynamic"));

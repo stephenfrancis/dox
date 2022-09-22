@@ -1,87 +1,67 @@
+import Debug from "debug";
 import * as React from "react";
-import * as RootLog from "loglevel";
 import Doc from "./Doc";
 
-const Log = RootLog.getLogger("app/DocInfo");
-
-enum LoadState {
-  Loading,
-  Ready,
-  Failed,
-}
+const debug = Debug("app/DocInfo");
 
 interface Props {
   doc: Doc;
 }
 
-interface State {
-  load_state: LoadState;
-}
+export const DocInfo: React.FC<Props> = (props) => {
+  const [loadError, setLoadError] = React.useState<string>(undefined);
 
-export default class DocInfo extends React.Component<Props, State> {
-  private load_err: string;
+  React.useEffect(() => {
+    setLoadError(undefined);
+  }, [props.doc]);
 
-  constructor(props) {
-    super(props);
-    this.load_err = "no error";
-    this.state = {
-      load_state: LoadState.Loading,
-    } as State;
-    const that = this;
-    this.props.doc
-      .getPromiseMarkdown()
-      .then(function () {
-        Log.debug("DocInfo promise returned");
-        that.setState({
-          load_state: LoadState.Ready,
-        } as State);
-      })
-      .then(null, function (err) {
-        that.load_err = String(err);
-        that.setState({
-          load_state: LoadState.Failed,
-        } as State);
-      });
-  }
-
-  render() {
-    switch (this.state.load_state) {
-      case LoadState.Loading:
-        return this.renderUnready();
-      case LoadState.Ready:
-        return this.renderReady();
-      default:
-        return this.renderFailed();
-    }
-  }
-
-  renderChildren() {
-    const children = [];
-    this.props.doc.getChildDocs().forEach(function (doc) {
-      children.push(<DocInfo doc={doc} key={doc.getName()} />);
+  props.doc
+    .getPromiseMarkdown()
+    .then(() => {
+      debug(
+        `DocInfo ${props.doc.getPath()} promise returned, ${props.doc.isLoaded()}`
+      );
+      setLoadError(null);
+    })
+    .catch((err) => {
+      setLoadError(String(err));
     });
-    return <ul>{children}</ul>;
-  }
 
-  renderFailed() {
+  const renderChildren = () => {
+    const children = props.doc
+      .getChildDocs()
+      .map((doc) => <DocInfo doc={doc} key={doc.getName()} />);
+    return <ul>{children}</ul>;
+  };
+
+  const renderFailed = () => {
     return (
       <li className="error">
-        failed to load: {this.props.doc.getName()}, error: {this.load_err}
+        failed to load: {props.doc.getName()}, error: {loadError}
       </li>
     );
-  }
+  };
 
-  renderReady() {
+  const renderReady = () => {
     return (
       <li>
-        <a href={this.props.doc.getHash()}>{this.props.doc.getTitle()}</a>
-        <span className="lowkey"> {this.props.doc.getName()}</span>
-        {this.props.doc.hasChildren() && this.renderChildren()}
+        <a href={props.doc.getHash()}>{props.doc.getTitle()}</a>
+        <span className="lowkey"> {props.doc.getName()}</span>
+        {props.doc.hasChildren() && renderChildren()}
       </li>
     );
-  }
+  };
 
-  renderUnready() {
-    return <li>loading: {this.props.doc.getName()}</li>;
+  const renderUnready = () => {
+    return <li>loading: {props.doc.getName()}</li>;
+  };
+
+  switch (loadError) {
+    case undefined:
+      return renderUnready();
+    case null:
+      return renderReady();
+    default:
+      return renderFailed();
   }
-}
+};

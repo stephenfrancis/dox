@@ -1,8 +1,8 @@
+import Debug from "debug";
 import * as React from "react";
-import * as RootLog from "loglevel";
 import Doc from "./Doc";
 
-const Log = RootLog.getLogger("app/DocSearchResult");
+const debug = Debug("app/DocSearchResult");
 
 enum LoadState {
   Failed,
@@ -20,34 +20,19 @@ interface State {
   load_state: LoadState;
 }
 
-export default class DocSearchResult extends React.Component<Props, State> {
-  private load_err: string;
-  private matches: Array<string>;
+export const DocSearchResult: React.FC<Props> = (props) => {
+  let load_err: string = "no error";
 
-  constructor(props) {
-    super(props);
-    this.load_err = "no error";
-    this.state = {
-      load_state: LoadState.Loading,
-    } as State;
-    this.load(props);
-  }
+  const [loadState, setLoadState] = React.useState<LoadState>(
+    LoadState.Loading
+  );
+  const [matches, setMatches] = React.useState<string[]>([]);
 
-  componentWillReceiveProps(next_props) {
-    if (
-      next_props.doc !== this.props.doc ||
-      next_props.search_term !== this.props.search_term
-    ) {
-      this.load(next_props);
-    }
-  }
-
-  getMatches(content) {
+  const getMatches = (content) => {
     const lines = content.split(/\r\n|\n/);
-    const regex1 = new RegExp("(.*)(" + this.props.search_term + ")(.*)", "i"); // danger? for the mo, treat query as a regex expr...;
+    const regex1 = new RegExp("(.*)(" + props.search_term + ")(.*)", "i"); // danger? for the mo, treat query as a regex expr...;
     // const regex2 = new RegExp(this.props.search_term, "gi");
     const out = [];
-    const that = this;
     let match_count = 0;
     let j = 0;
 
@@ -65,91 +50,87 @@ export default class DocSearchResult extends React.Component<Props, State> {
         );
       }
     });
-    if (this.props.addFoundMatches) {
-      this.props.addFoundMatches(match_count);
+    if (props.addFoundMatches) {
+      props.addFoundMatches(match_count);
     }
     return out;
-  }
+  };
 
-  load(props) {
-    const that = this;
+  const load = () => {
     props.doc
       .getPromiseMarkdown()
-      .then(function (content) {
-        Log.debug("SearchMatch promise returned");
-        that.matches = that.getMatches(content);
-        that.setState({
-          load_state: LoadState.Ready,
-        } as State);
+      .then((content) => {
+        debug("SearchMatch promise returned");
+        setMatches(getMatches(content));
+        setLoadState(LoadState.Ready);
       })
-      .then(null, function (err) {
-        that.load_err = String(err);
-        that.setState({
-          load_state: LoadState.Failed,
-        } as State);
+      .catch((err) => {
+        load_err = String(err);
+        setLoadState(LoadState.Failed);
       });
-  }
+  };
 
-  onClick() {
-    window.location.href = this.props.doc.getHash();
-  }
+  React.useEffect(() => {
+    load();
+  }, [props.doc, props.search_term]);
 
-  render() {
-    switch (this.state.load_state) {
-      case LoadState.Loading:
-        return this.renderUnready();
-      case LoadState.Ready:
-        return this.renderReady();
-      default:
-        return this.renderFailed();
-    }
-  }
+  const onClick = () => {
+    window.location.href = props.doc.getHash();
+  };
 
-  renderChildren() {
+  const renderChildren = () => {
     const children = [];
-    const that = this;
-    this.props.doc.getChildDocs().forEach(function (doc) {
+    props.doc.getChildDocs().forEach(function (doc) {
       children.push(
         <DocSearchResult
           doc={doc}
           key={doc.getName()}
-          search_term={that.props.search_term}
-          addFoundMatches={that.props.addFoundMatches}
+          search_term={props.search_term}
+          addFoundMatches={props.addFoundMatches}
         />
       );
     });
     return <div>{children}</div>;
-  }
+  };
 
-  renderFailed() {
+  const renderFailed = () => {
     return (
       <div className="gen_block error">
-        failed to load : {this.props.doc.getName()}, error: {this.load_err}
+        failed to load : {props.doc.getName()}, error: {load_err}
       </div>
     );
-  }
+  };
 
-  renderReady() {
+  const renderResultBlock = () => {
+    return (
+      <div className="match_result" onClick={onClick}>
+        <div>
+          <b>{props.doc.getTitle()}</b>
+        </div>
+        <ul>{matches}</ul>
+      </div>
+    );
+  };
+
+  const renderUnready = () => {
+    return <div className="gen_block">loading: {props.doc.getName()}</div>;
+  };
+
+  const renderReady = () => {
     return (
       <div>
-        {this.matches.length > 0 && this.renderResultBlock()}
-        {this.props.doc.hasChildren() && this.renderChildren()}
+        {matches.length > 0 && renderResultBlock()}
+        {props.doc.hasChildren() && renderChildren()}
       </div>
     );
-  }
+  };
 
-  renderResultBlock() {
-    return (
-      <div className="match_result" onClick={this.onClick.bind(this)}>
-        <div>
-          <b>{this.props.doc.getTitle()}</b>
-        </div>
-        <ul>{this.matches}</ul>
-      </div>
-    );
+  switch (loadState) {
+    case LoadState.Loading:
+      return renderUnready();
+    case LoadState.Ready:
+      return renderReady();
+    default:
+      return renderFailed();
   }
-
-  renderUnready() {
-    return <div className="gen_block">loading: {this.props.doc.getName()}</div>;
-  }
-}
+};

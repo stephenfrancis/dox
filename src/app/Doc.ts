@@ -1,11 +1,11 @@
+import Debug from "debug";
 import { marked } from "marked";
 import * as Path from "path-browserify";
-import * as RootLog from "loglevel";
 // import Viz from "viz.js";
 import Repo from "./Repo";
 import Utils from "./Utils";
 
-const Log = RootLog.getLogger("app/Doc");
+const debug = Debug("app/Doc");
 
 export default class Doc {
   private child_docs: any;
@@ -54,24 +54,17 @@ export default class Doc {
   }
 
   public getChildDoc(dirname: string) {
-    Log.debug(`Doc.getChildDoc(${dirname})`);
+    debug(`Doc.getChildDoc(${dirname})`);
     return this.child_docs[dirname];
   }
 
   public getChildDocs(): Array<Doc> {
-    if (!this.loaded) {
-      throw new Error("must only be called once loaded");
-    }
-    const that = this;
-    return Object.keys(this.child_docs).map(function (name) {
-      return that.child_docs[name];
-    });
+    this.throwIfNotLoaded();
+    return Object.keys(this.child_docs).map((name) => this.child_docs[name]);
   }
 
   public getChildNames(): Array<string> {
-    if (!this.loaded) {
-      throw new Error("must only be called once loaded");
-    }
+    this.throwIfNotLoaded();
     return Object.keys(this.child_docs);
   }
 
@@ -103,10 +96,9 @@ export default class Doc {
   }
 
   public getPromiseHTML(highlight_link_path?: string): Promise<string> {
-    const that = this;
-    return this.getPromiseMarkdown().then(function (doc_obj: string) {
-      return that.convertDocumentContent(doc_obj, highlight_link_path);
-    });
+    return this.getPromiseMarkdown().then((doc_obj: string) =>
+      this.convertDocumentContent(doc_obj, highlight_link_path)
+    );
   }
 
   public getPromiseMarkdown(): Promise<string> {
@@ -133,30 +125,29 @@ export default class Doc {
   }
 
   public hasChildren(): boolean {
-    if (!this.loaded) {
-      throw new Error("must only be called once loaded");
-    }
+    this.throwIfNotLoaded();
     return Object.keys(this.child_docs).length > 0;
   }
 
+  public isLoaded(): boolean {
+    return this.loaded;
+  }
+
   private load() {
-    const that = this;
     const file_url = this.getSourceFileURL();
-    Log.debug("Doc.load() getting: " + file_url);
+    debug("Doc.load() getting: " + file_url);
     this.promise = this.repo
       .getPromise()
-      .then(function (store) {
-        return store.getDoc(file_url);
-      })
-      .then(function (doc: { id: string; content: string }): string {
+      .then((store) => store.getDoc(file_url))
+      .then((doc: { id: string; content: string }): string => {
         var match = doc.content.match(/^\n*#\s*(.*)[\r\n]/);
         if (match) {
-          Log.debug(`setting doc_title to: ${match[1]}`);
-          that.doc_title = match[1];
+          debug(`setting doc_title to: ${match[1]}`);
+          this.doc_title = match[1];
         }
-        that.getDocLinks(doc.content);
-        that.repo.docLoaded();
-        that.loaded = true;
+        this.getDocLinks(doc.content);
+        this.repo.docLoaded();
+        this.loaded = true;
         return doc.content;
       }) as Promise<string>;
   }
@@ -183,15 +174,14 @@ export default class Doc {
     markdown: string,
     highlight_link_path?: string
   ): string {
-    const that = this;
     return markdown.replace(
       /\[(.*)\]\((.*?)\)/g,
-      function (match_all, match_1, match_2) {
-        Log.debug("convertRelativePaths() match: " + match_1 + ", " + match_2);
-        if (that.isURLDirectoryOrMarkdown(match_2)) {
-          return that.convertURL(match_2, match_1, highlight_link_path);
-        } else if (that.isURLNeedingConversion(match_2)) {
-          return that.convertURLOtherFile(match_2, match_1);
+      (match_all, match_1, match_2) => {
+        debug("convertRelativePaths() match: " + match_1 + ", " + match_2);
+        if (this.isURLDirectoryOrMarkdown(match_2)) {
+          return this.convertURL(match_2, match_1, highlight_link_path);
+        } else if (this.isURLNeedingConversion(match_2)) {
+          return this.convertURLOtherFile(match_2, match_1);
         }
         return "[" + match_1 + "](" + match_2 + ")";
       }
@@ -202,17 +192,16 @@ export default class Doc {
     digraph_blocks: Array<string>,
     highlight_link_path?: string
   ) {
-    const that = this;
     for (let i = 0; i < digraph_blocks.length; i += 1) {
       digraph_blocks[i] = digraph_blocks[i].replace(
         /URL="(.*)"/g,
-        function (match_all, match_1) {
-          Log.debug(`convertRelativePathsInDigraphBlocks() match: ${match_1}`);
-          if (that.isURLDirectoryOrMarkdown(match_1)) {
-            match_1 = that.getHash(that.getFullPathFromRelative(match_1));
-          } else if (that.isURLNeedingConversion(match_1)) {
+        (match_all, match_1) => {
+          debug(`convertRelativePathsInDigraphBlocks() match: ${match_1}`);
+          if (this.isURLDirectoryOrMarkdown(match_1)) {
+            match_1 = this.getHash(this.getFullPathFromRelative(match_1));
+          } else if (this.isURLNeedingConversion(match_1)) {
             match_1 =
-              that.repo.getBaseURL() + that.getFullPathFromRelative(match_1);
+              this.repo.getBaseURL() + this.getFullPathFromRelative(match_1);
           }
           return 'URL="' + match_1 + '"';
         }
@@ -221,19 +210,19 @@ export default class Doc {
   }
 
   private isURLNeedingConversion(href: string): boolean {
-    Log.trace(`convertRelativePath(${href}) tests:
-      ${Utils.isProtocolRelativeURL(href)}
-      ${Path.isAbsolute(href)}`);
+    // debug(`convertRelativePath(${href}) tests:
+    // ${Utils.isProtocolRelativeURL(href)}
+    // ${Path.isAbsolute(href)}`);
 
     return Utils.isProtocolRelativeURL(href) && !Path.isAbsolute(href);
   }
 
   private isURLDirectoryOrMarkdown(href: string): boolean {
-    Log.trace(`convertRelativePath(${href}) tests:
-      ${Utils.isProtocolRelativeURL(href)}
-      ${Path.isAbsolute(href)}
-      ${Utils.appearsToBeAFile(href)}
-      ${Utils.isMarkdownFile(href)}`);
+    // debug(`convertRelativePath(${href}) tests:
+    //   ${Utils.isProtocolRelativeURL(href)}
+    //   ${Path.isAbsolute(href)}
+    //   ${Utils.appearsToBeAFile(href)}
+    //   ${Utils.isMarkdownFile(href)}`);
 
     return (
       Utils.isProtocolRelativeURL(href) &&
@@ -255,9 +244,9 @@ export default class Doc {
     var full_path = this.getFullPathFromRelative(href);
     var out = "[" + label + "](" + this.getHash(full_path) + ")";
 
-    Log.debug("convertURL(" + href + "): " + full_path);
+    debug("convertURL(" + href + "): " + full_path);
     if (highlight_link_path) {
-      Log.debug("highlight_link path: " + highlight_link_path);
+      debug("highlight_link path: " + highlight_link_path);
       if (highlight_link_path === full_path) {
         out = "**" + out + "**";
       }
@@ -277,7 +266,7 @@ export default class Doc {
     var out = "";
     var block_number = 0;
 
-    Log.trace("separateOutDigraphBlocks() lines: " + lines.length);
+    // debug("separateOutDigraphBlocks() lines: " + lines.length);
     for (let i = 0; i < lines.length; i += 1) {
       if (!digraph_blocks[block_number]) {
         if (lines[i].indexOf("digraph") === 0) {
@@ -293,14 +282,14 @@ export default class Doc {
         }
       }
     }
-    Log.trace(
-      "separateOutDigraphBlocks() out: " +
-        lines.length +
-        ", blocks: " +
-        block_number +
-        ", out: " +
-        out
-    );
+    // debug(
+    //   "separateOutDigraphBlocks() out: " +
+    //     lines.length +
+    //     ", blocks: " +
+    //     block_number +
+    //     ", out: " +
+    //     out
+    // );
     return out;
   }
 
@@ -349,6 +338,12 @@ export default class Doc {
     for (i = 0; matches && i < matches.length; i += 1) {
       addLink(regex2.exec(matches[i]));
       regex2.exec(""); // every other call to regex.exec() returns null for some reason...!
+    }
+  }
+
+  private throwIfNotLoaded(): void {
+    if (!this.loaded) {
+      throw new Error("must only be called once loaded");
     }
   }
 }

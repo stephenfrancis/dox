@@ -1,8 +1,8 @@
-import * as RootLog from "loglevel";
+import Debug from "debug";
 import * as Underscore from "underscore";
 import IndexedDBStore from "./IndexedDBStore";
 
-const Log = RootLog.getLogger("storage/IndexedDB");
+const debug = Debug("storage/IndexedDB");
 
 // call from browser: new Database({ indexedDB = window.indexedDB }, ...)
 
@@ -54,7 +54,7 @@ export default class IndexedDB {
   public start() {
     const that = this;
     this.throwIfStarted();
-    Log.debug(
+    debug(
       "opening indexedDB database: %s, version: %d",
       this.db_id,
       this.version
@@ -64,7 +64,7 @@ export default class IndexedDB {
 
       request.onupgradeneeded = function (event) {
         // The database did not previously exist, so create object stores and indexes.
-        Log.info("Upgrading...");
+        debug("Upgrading...");
         that.db = request.result;
         that.upgrade(event.oldVersion, request);
       };
@@ -77,7 +77,7 @@ export default class IndexedDB {
 
       request.onerror = function (error) {
         that.db = null;
-        Log.error("Store.start() error: %o", error);
+        debug("Store.start() error: %o", error);
         reject(error);
       };
     });
@@ -97,7 +97,7 @@ export default class IndexedDB {
       try {
         store.deleteStore(that.db);
       } catch (e) {
-        Log.error(e);
+        debug(e);
       }
     });
   }

@@ -1,8 +1,8 @@
-import * as RootLog from "loglevel";
+import Debug from "debug";
 import Store from "./Store";
 import StoredObject from "./StoredObject";
 
-const Log = RootLog.getLogger("storage/AjaxStore");
+const debug = Debug("storage/AjaxStore");
 
 enum Mode {
   Both,
@@ -29,27 +29,28 @@ export default class AjaxStore {
   }
 
   public getDoc(rel_path: string): Promise<StoredObject> {
-    const that = this;
-    return new Promise(function (resolve, reject) {
-      resolve(undefined);
-    })
-      .then(function () {
-        Log.debug(`getDoc()..1 mode: ${that.mode}, rel_path: ${rel_path}`);
-        if (that.mode === Mode.Server) {
-          throw new Error("force use of getDocFromServer...");
-        }
-        return that.getDocFromStore(rel_path);
-      })
-      .then(function (doc_obj) {
-        Log.debug(`getDoc()..2 doc_obj: ${!!doc_obj}`);
-        return doc_obj;
-      })
-      .then(null, function (err) {
-        if (that.mode === Mode.Store) {
-          throw err;
-        }
-        return that.getDocFromServer(rel_path);
-      });
+    // return new Promise(function (resolve, reject) {
+    //   resolve(undefined);
+    // })
+    //   .then(() => {
+    debug(`getDoc()..1 mode: ${this.mode}, rel_path: ${rel_path}`);
+    if (this.mode === Mode.Server) {
+      throw new Error("force use of getDocFromServer...");
+    }
+    return (
+      this.getDocFromStore(rel_path)
+        // })
+        .then((doc_obj) => {
+          debug(`getDoc()..2 doc_obj: ${!!doc_obj}`);
+          return doc_obj;
+        })
+        .catch((err) => {
+          if (this.mode === Mode.Store) {
+            throw err;
+          }
+          return this.getDocFromServer(rel_path);
+        })
+    );
   }
 
   // take path_array and return a Promise
@@ -69,7 +70,7 @@ export default class AjaxStore {
   // Return a Promise; options MUST contain url and type
   getFileFromServer(options: any): Promise<StoredObject> {
     const that = this;
-    Log.debug(
+    debug(
       `getFileFromServer() preparing to send: ${options.type}, ${options.url}`
     );
     return new Promise(function (resolve, reject) {
@@ -84,19 +85,19 @@ export default class AjaxStore {
 
   private onServerMessageReceived(xhr, resolve, reject) {
     var msg;
-    Log.debug(
+    debug(
       `getFileFromServer() onreadystatechange: ${xhr.readyState}, ${xhr.status}`
     );
     if (xhr.readyState === XMLHttpRequest.DONE) {
       if (xhr.status === 200) {
-        Log.debug(`getFileFromServer() successfully sent: ${xhr.responseURL}`);
+        debug(`getFileFromServer() successfully sent: ${xhr.responseURL}`);
         resolve(this.response_convert(xhr.responseURL, xhr.responseText));
       } else {
         reject(`unexpected status: ${xhr.status}`);
       }
     } else if (xhr.status > 399) {
       msg = `[${xhr.status}] ${xhr.statusText}`;
-      Log.error(`getFileFromServer() failed: ${msg}`);
+      debug(`getFileFromServer() failed: ${msg}`);
       reject(msg);
     }
   }

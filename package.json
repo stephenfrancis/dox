@@ -1,6 +1,6 @@
 {
   "name": "@stephen.francis/dox",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Local Browse Functionality on a Git Repo containing Markdown",
   "main": "index.js",
   "repository": {
@@ -13,8 +13,8 @@
     "build": "NODE_ENV=production esbuild ./src/app/App.tsx --bundle --minify --sourcemap --platform=browser --define:global=window --outdir=./dist",
     "clean": "rm -f -r dist/*",
     "serve": "node ./src/Serve.js",
-    "start": "cd src && NODE_ENV=development rollup --watch --config config/rollup.config.js",
-    "test": "npx jest"
+    "test": "npx jest",
+    "watch": "NODE_ENV=production esbuild ./src/app/App.tsx --bundle --minify --sourcemap --platform=browser --define:global=window --outdir=./dist --watch"
   },
   "bin": {
     "serve-dox": "./src/Serve.js"
@@ -42,9 +42,9 @@
   "dependencies": {
     "@types/node": "^18.7.18",
     "@types/react": "^18.0.20",
+    "debug": "^4.3.4",
     "koa": "^2.13.4",
     "koa-send": "^5.0.1",
-    "loglevel": "^1.8.0",
     "marked": "^4.1.0",
     "path-browserify": "^1.0.1",
     "react": "^18.2.0",
@@ -53,6 +53,7 @@
   },
   "devDependencies": {
     "@types/jest": "^29.0.2",
+    "@types/react": "^17.0.45",
     "esbuild": "^0.15.7",
     "jest": "^29.0.3",
     "ts-jest": "^29.0.1",

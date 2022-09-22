@@ -1,8 +1,12 @@
-
 # Example Subfolder
 
-* The README.md of the parent folder should be shown on the left if:
-  * there is a parent level, and
-  * the screen width is wide enough
+- The README.md of the parent folder should be shown on the left if:
+  - there is a parent level, and
+  - the screen width is wide enough
 
-* [Installation](installation.md)
+## Example Diagram
+
+digraph {
+A -> B
+B -> C
+}

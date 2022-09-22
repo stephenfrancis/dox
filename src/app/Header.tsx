@@ -1,25 +1,22 @@
+// import Debug from "debug";
 import * as React from "react";
-import * as RootLog from "loglevel";
 import Doc from "./Doc";
 import Repo from "./Repo";
 
-const Log = RootLog.getLogger("app/Header");
+// const debug = Debug("app/Header");
 
 interface Props {
   doc?: Doc;
   repo: Repo;
 }
 
-interface State {}
+export const Header: React.FC<Props> = (props) => {
+  const searchInput = React.useRef<HTMLInputElement>();
 
-export default class Header extends React.Component<Props, State> {
-  private search_input: any;
-
-  getBreadcrumbs() {
-    const that = this;
+  const getBreadcrumbs = () => {
     const breadcrumbs = [];
     var j = 0;
-    var doc = this.props.doc;
+    var doc = props.doc;
 
     if (doc) {
       breadcrumbs.unshift(
@@ -39,65 +36,57 @@ export default class Header extends React.Component<Props, State> {
     }
     breadcrumbs.unshift(
       <li key="bc_repo">
-        <a href={this.props.repo.getRootDoc().getHash()}>
-          {this.props.repo.getRepoName()}
+        <a href={props.repo.getRootDoc().getHash()}>
+          {props.repo.getRootDoc().getTitle() || props.repo.getRepoName()}
         </a>
       </li>
     );
     return breadcrumbs;
-  }
+  };
 
-  setupSearchInput(input): void {
-    this.search_input = input;
-  }
-
-  triggerSearch() {
-    const search_term = this.search_input.value;
-    this.search_input.value = "";
+  const triggerSearch = () => {
+    const search_term = searchInput.current.value;
+    searchInput.current.value = "";
     if (!search_term) {
       return; // ignore empty search altogether
     }
     // alert(`search for: '${search_term}'`);
     window.location.href =
-      this.props.repo.getHash() +
-      "&search_term=" +
-      encodeURIComponent(search_term);
-  }
+      props.repo.getHash() + "&search_term=" + encodeURIComponent(search_term);
+  };
 
-  handleSearchKeyUp(event) {
+  const handleSearchKeyUp = (event) => {
     if (event.keyCode === 13) {
-      this.triggerSearch();
+      triggerSearch();
     }
-  }
+  };
 
-  render() {
-    var breadcrumbs = this.getBreadcrumbs();
-    return (
-      <nav className="navbar">
-        <div className="navbar-breadcrumbs">
-          <ul id="curr_location">{breadcrumbs}</ul>
-        </div>
-        <div className="navbar-search">
-          <input
-            type="text"
-            id="search_box"
-            placeholder="search"
-            ref={this.setupSearchInput.bind(this)}
-            onBlur={this.triggerSearch.bind(this)}
-            onKeyUp={this.handleSearchKeyUp.bind(this)}
-          />
-        </div>
-        <div className="navbar-info">
-          <a
-            id="info"
-            type="button"
-            href={this.props.repo.getHash()}
-            title="view information about this repo, and highlight broken links"
-          >
-            ⓘ
-          </a>
-        </div>
-      </nav>
-    );
-  }
-}
+  const breadcrumbs = getBreadcrumbs();
+  return (
+    <nav className="navbar">
+      <div className="navbar-breadcrumbs">
+        <ul id="curr_location">{breadcrumbs}</ul>
+      </div>
+      <div className="navbar-search">
+        <input
+          type="text"
+          id="search_box"
+          placeholder="search"
+          ref={searchInput}
+          onBlur={triggerSearch}
+          onKeyUp={handleSearchKeyUp}
+        />
+      </div>
+      <div className="navbar-info">
+        <a
+          id="info"
+          type="button"
+          href={props.repo.getHash()}
+          title="view information about this repo, and highlight broken links"
+        >
+          ⓘ
+        </a>
+      </div>
+    </nav>
+  );
+};
