@@ -1,0 +1,25 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "**/.*",
+      "firebase.json",
+      "**/node_modules/**",
+      "package.json",
+      "yarn.lock"
+    ],
+    "redirects": [
+      {
+        "source": "/dox-built/:file*",
+        "destination": "/dist/:file",
+        "type": 301
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/src/public/index.html"
+      }
+    ]
+  }
+}

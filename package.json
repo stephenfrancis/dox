@@ -1,6 +1,6 @@
 {
   "name": "@stephen.francis/dox",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Local Browse Functionality on a Git Repo containing Markdown",
   "main": "index.js",
   "repository": {
@@ -12,6 +12,7 @@
   "scripts": {
     "build": "NODE_ENV=production esbuild ./src/app/App.tsx --bundle --minify --sourcemap --platform=browser --define:global=window --outdir=./dist",
     "clean": "rm -f -r dist/*",
+    "deploy": "firebase deploy",
     "serve": "node ./src/Serve.js",
     "test": "npx jest",
     "watch": "NODE_ENV=production esbuild ./src/app/App.tsx --bundle --minify --sourcemap --platform=browser --define:global=window --outdir=./dist --watch"
